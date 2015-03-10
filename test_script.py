@@ -1,8 +1,5 @@
 #!/usr/bin/python
 
-import pandas as pd
-import pdb
-
 import data_read as dread
 import data_summary as ds
 import misc_func as misc
@@ -47,15 +44,6 @@ time_name = "Time"
 # string endings for temperature readings after converting to SI values
 k_str_end = "_K"
 vol_str_end = "_m3s"
-# strings for converted measurement in SI units
-temp_mea_si_names = [
-    name+k_str_end for name in [
-        tei_name, teo_name, tvdot_name
-    ]+other_t_names
-]
-vdot_mea_si_names = [
-    name+vol_str_end for name in [vdot_name]+other_vdot_names
-]
 # tolerance for steady state operation detection
 t_toler = 0.05  # temperature change in K/min
 rel_toler = 0.1/100.0  # relative change per minute
@@ -66,6 +54,16 @@ kW_rel_uncer = 0.015  # relative power consumption
 
 # create a list to store the data? (potential memory problem)
 all_ss_df_options = []
+
+# strings for converted measurement in SI units
+temp_mea_si_names = [
+    name+k_str_end for name in [
+        tei_name, teo_name, tvdot_name
+    ]+other_t_names
+]
+vdot_mea_si_names = [
+    name+vol_str_end for name in [vdot_name]+other_vdot_names
+]
 
 # check if iteration has the corrected information
 if len(filepaths) != len(fault_types):
