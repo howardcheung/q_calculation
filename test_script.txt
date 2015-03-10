@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 import pandas as pd
 import pdb
@@ -8,6 +9,13 @@ import misc_func as misc
 
 filepath = '../Benchmark Tests/normal_complete.csv'
 ss_time = 900
+tei_name = "TEI"
+teo_name = 
+tvdot_name
+other_t_names =
+other_names = 
+t_toler = 
+rel_toler = 
 df_option = dread.read_csv_option(filepath)
 df_option = dread.unit_convert(df_option, [
     'TEI', 'TEO', 'TCI', 'TCO', 'TWE_set', 'TBO', 'TSI'
@@ -51,3 +59,10 @@ for ss_df_option in ss_df_options:
     ss_df_option = ds.cal_q_from_sample_result(
         ss_df_option, 'FWE_m3s', 'TBO_K', 'TEO_K', 'TEI_K', hx_name='evap'
     )
+    ss_df_option = ds.cal_mdotdeltah_per_time(
+        ss_df_option, 'FWE_m3s', 'TBO_K', 'TEO_K', 'TEI_K', hx_name='evap'
+    )
+    for deltat = range(0, 70, 10):
+        ss_df_option = ds.cal_q_from_ind_mea(
+            ss_df_option, deltat=delta, hx_name='evap', alpha=0.95
+        )
