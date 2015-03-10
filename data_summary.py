@@ -6,11 +6,13 @@
 """
 
 import copy
+import csv
 import inspect
 from math import sqrt
 import pandas as pd
 import pdb
 from scipy.stats import t
+from statistics import stdev
 
 from CoolProp.CoolProp import PropsSI
 
@@ -95,7 +97,7 @@ def append_uncer_to_df(
 
 def data_mean_cal(df_option, col_names, alpha=0.95):
     """
-        This function calculates the mean of data stored in 
+        This function calculates the mean of data stored in
         column col_names and pass the results (mean and uncertainty)
         to the 'details' attribute in the DataFrame
 
@@ -157,7 +159,7 @@ def data_mean_cal(df_option, col_names, alpha=0.95):
             df[col_name+uncer_str_end].tolist()
         )
         if expt_uncer:
-            expt_uncer.set(expt_uncer.get()/len_df**2)
+            expt_uncer.set(expt_uncer.get()/len_df)
             df.details[col_name+mean_str_end+uncer_str_end+dev_str_end] = \
                 expt_uncer.get()
             env_uncer = df[col_name].std()*t.interval(
@@ -236,9 +238,16 @@ def cal_mdot(vdot, tvdot, vdot_uncer, tvdot_uncer, medium):
         )/tvdot/0.001*tvdot_uncer
         rho_uncer_eos = rho*rel_uncer_rho_eos
         mdot.set(rho*vdot)
-        mdot_uncer.set(misc.sqrt_sum_of_squares([
+        mdot_uncer = misc.sqrt_sum_of_squares([
             rho_uncer_eos*vdot, rho*vdot_uncer, rho_uncer_expt*vdot
-        ]))
+        ])
+    except ValueError:
+        uncer_temp = misc.OptionalVariable()
+        uncer_temp.set(float('nan'))
+        if not mdot:
+            mdot = copy.deepcopy(uncer_temp)
+        if not mdot_uncer:
+            mdot_uncer = copy.deepcopy(uncer_temp)
     except Exception as e:
         if not mdot:
             mdot.setError(e)
@@ -368,12 +377,20 @@ def cal_mdotdeltah_water(
                 hout_uncer, hin_uncer, deltah_uncer_eos
         ])
         if not deltah_uncer:
-            q_uncer.setError(deltah_uncer.getError)
+            q_uncer.setError(deltah_uncer.getError())
             return q, q_uncer
+        else:
+            deltah_uncer = deltah_uncer.get()
         q_uncer = misc.sqrt_sum_of_squares([
-            mdot_uncer.get()*deltah, deltah_uncer.get()*mdot
+            mdot_uncer*deltah, deltah_uncer*mdot
         ])
-
+    except ValueError:  # temperature out of range
+        uncer_temp = misc.OptionalVariable()
+        uncer_temp.set(float('nan'))
+        if not q:
+            q = copy.deepcopy(uncer_temp)
+        if not q_uncer:
+            q_uncer = copy.deepcopy(uncer_temp)
     except Exception as e:
         if not q:
             q.setError(e)
@@ -479,7 +496,7 @@ def cal_q_from_sample_result(
     df.details['q_'+hx_name+'_mean_obs'] = q.get()
     df.details['q_uncer_'+hx_name+'_mean_obs'] = q_uncer.get()
     df_option.set(df)
-    return df
+    return df_option
 
 
 def cal_mdotdeltah_per_time(
@@ -552,7 +569,7 @@ def cal_mdotdeltah_per_time(
 
     # calculation starts
     for ind in df.index:
-    # calculate q and q_result
+        # calculate q and q_result
         if vdot_col_name is not '':
             q, q_uncer = cal_mdotdeltah_water(
                 vdot=df[vdot_col_name][ind], tvdot=df[tvdot_col_name][ind],
@@ -573,12 +590,18 @@ def cal_mdotdeltah_per_time(
                 mdot=df[mdot_col_name],
                 mdot_uncer=df[mdot_col_name+uncer_str_end],
             )
-        df[new_col_name] = copy.deepcopy(q)
-        df[new_col_name+uncer_str_end] = copy.deepcopy(q_uncer)
+        df[new_col_name][ind] = copy.deepcopy(q)
+        df[new_col_name+uncer_str_end][ind] = copy.deepcopy(q_uncer)
+
+    # return values
+    df.details['q_'+hx_name+'_mean_obs'] = q.get()
+    df.details['q_uncer_'+hx_name+'_mean_obs'] = q_uncer.get()
+    df_option.set(df)
+    return df_option
 
 
 def cal_q_from_ind_mea(
-    df_option, deltat=0, hx_name='hx'
+    df_option, deltat=0, hx_name='hx', alpha=0.95
 ):
     """
         This function integrates the mdotdeltah column result
@@ -600,6 +623,10 @@ def cal_q_from_ind_mea(
         hx_name: string
             name of heat exchanger that is under analyzed. Default 'hx'
 
+        alpha: float
+            level of confidence interval you want in the uncertainty
+            of the mean. Default 0.95
+
         Outputs:
         ===========
         df_option: misc_func.OptionalVariable()
@@ -607,7 +634,7 @@ def cal_q_from_ind_mea(
             a raw csv from Comstock data file. The 'details'
             attribute contain extra information that summarizes
             the data point with heat transfer rate and its
-            uncertainty
+            uncertainty with deltat in its name
     """
 
     # check inputs
@@ -620,7 +647,7 @@ def cal_q_from_ind_mea(
             "deltat to "+inspect.stack()[0][3]+"() is negative."
         )
     data_col_name = prod_str+"_"+hx_name
-    uncer_col_name = data_col_name+uncer_std_end
+    uncer_col_name = data_col_name+uncer_str_end
     if data_col_name not in df.columns.values:
         raise IndexError(
             inspect.stack()[0][3]+"() cannot find column" +
@@ -638,6 +665,7 @@ def cal_q_from_ind_mea(
         beg_ind = 0
         acc = 0.0
         acc_uncer_sq = 0.0
+        acc_time = 0.0
         while beg_ind < end_ind:
             # begin integration
             beg_time = df[time_str][df.index[beg_ind]]
@@ -673,9 +701,77 @@ def cal_q_from_ind_mea(
                         df[uncer_col_name][df.index[beg_ind]].get()*deltaT/2.
                     )**2
                     break
-            q_ind.append(acc)
-            q_uncer_ind.append(sqrt(acc_uncer_sq))
+
+            # divide the integrated heat transfer by time
+            acc_time = df[time_str][df.index[beg_ind]]-beg_time
+            q_ind.append(acc/acc_time)
+            q_uncer_ind.append(sqrt(acc_uncer_sq)/acc_time)
 
     else:  # mean of instantaneous heat transfer rate is needed
-        q_ind = df[data_col_name].tolist()
-        q_uncer_ind = df[uncer_col_name].tolist()
+        q_ind = [df[data_col_name][ind].get() for ind in df.index]
+        q_uncer_ind = [df[uncer_col_name][ind].get() for ind in df.index]
+
+    # taking the mean values for result
+    if deltat == 0:
+        time_std_end = '_inst'
+    else:
+        time_std_end = '_'+str(int(deltat))+'s'
+    len_q_ind = len(q_ind)
+    df.details['q_'+hx_name+'_mean'+time_std_end] = sum(q_ind)/len_q_ind
+
+    # getting the variation of samples as environmental noise effect
+    zero_order_sq = sum([(value/len_q_ind)**2 for value in q_uncer_ind])
+    first_order_sq = (
+        stdev(q_ind)*t.interval(alpha, len_q_ind-1)[1]/len_q_ind
+    )**2  # give NaN for zero degree of freedom
+    df.details['q_uncer_'+hx_name+'_mean'+time_std_end] = sqrt(
+        zero_order_sq+first_order_sq
+    )
+    df.details['q_uncer_'+hx_name+'_mean'+time_std_end+'_zero'] = sqrt(
+        zero_order_sq
+    )
+    df.details['q_uncer_'+hx_name+'_mean'+time_std_end+'_first'] = sqrt(
+        first_order_sq
+    )
+
+    # return values
+    df_option.set(df)
+    return df_option
+
+
+def print_data(ss_df_options, csv_path, detail_names):
+    """
+        Print the data in ss_df_options details into a summary
+        file.
+
+        Inputs:
+        ===========
+        ss_df_options: list
+            list of misc_func.OptionalVariable() that contains
+            a pandas DataFrame with 'details' attribute
+
+        csv_path: string
+            path and name of the file with the csv extension.
+
+        detail_names: list
+            the key names in the 'details' attribute in the
+            pandas DataFrams in ss_df_options that you want
+            to print in the file. They should be in the order
+            of your output
+
+    """
+
+    # write file
+    ofile = open(csv_path, 'w', newline='')
+    ofile_writer = csv.writer(ofile, delimiter=',')
+    # write header
+    ofile_writer.writerow(detail_names)
+    # write detailed info
+    for ss_df_option in ss_df_options:
+        row_infos = [
+            ss_df_option.get().details[name]
+            for name in detail_names
+        ]
+        ofile_writer.writerow(row_infos)
+    # close file
+    ofile.close()

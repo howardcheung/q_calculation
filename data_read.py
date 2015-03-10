@@ -11,6 +11,7 @@ import inspect
 import numpy as np
 import os
 import pandas as pd
+import pdb
 
 import misc_func
 
@@ -247,6 +248,8 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
             'abs_slope': average rate of change of values
             'rel_slope': average rate of change of values relative to
             the mean value within the same period
+            'min': minimum of values
+            'max': maximum of values
             Default 'mean'
 
         col_names: list
@@ -288,7 +291,7 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
     # find the beginning time step for calculation
     # for each time instant in the data series
     time_col = df.details[time_col_name]
-    beg_time = df[time_col][0]
+    beg_time = df[time_col][df.index[0]]
     beg_cal_time = ss_time+beg_time
     search_indexes = {}
     search_ind = 0
@@ -296,11 +299,11 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
         if df[time_col][ind] >= beg_cal_time:
             # find the beginning time step
             current_time = df[time_col][ind] -\
-                df[time_col][search_ind]
+                df[time_col][df.index[search_ind]]
             while current_time > ss_time:
                 search_ind = search_ind+1
                 current_time = df[time_col][ind] -\
-                    df[time_col][search_ind]
+                    df[time_col][df.index[search_ind]]
             search_indexes[ind] = search_ind
             df[beg_ind_col_name][ind] = search_ind
 
@@ -314,9 +317,10 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
             def _cal_func(ind):
                 value_option = misc_func.OptionalVariable()
                 try:
-                    value_option.set(
+                    value_mean = (
                         df[col_name][search_indexes[ind]:ind+1].mean()
                     )
+                    value_option.set(value_mean)
                 except Exception as e:
                     value_option.setError(e)
                 return value_option
@@ -342,6 +346,28 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
                     value_option = misc_func.OptionalVariable()
                     value_option.setError(e)
                 return value_option
+        elif cal_method is 'min':
+            def _cal_func(ind):
+                value_option = misc_func.OptionalVariable()
+                try:
+                    value_mean = (
+                        df[col_name][search_indexes[ind]:ind+1].min()
+                    )
+                    value_option.set(value_mean)
+                except Exception as e:
+                    value_option.setError(e)
+                return value_option
+        elif cal_method is 'max':
+            def _cal_func(ind):
+                value_option = misc_func.OptionalVariable()
+                try:
+                    value_mean = (
+                        df[col_name][search_indexes[ind]:ind+1].max()
+                    )
+                    value_option.set(value_mean)
+                except Exception as e:
+                    value_option.setError(e)
+                return value_option
         else:
             raise NameError(
                 "cal_method input "+cal_method+" to " +
@@ -362,7 +388,8 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
 
 def ss_identifier(
     df_option, col_names, abs_slope_cols, rel_slope_cols,
-    abs_slope_thres, rel_slope_thres, deltaT=900, ss_time=900
+    abs_slope_thres, rel_slope_thres,
+    deltaT=900, ss_time=900, all_conditions=[]
 ):
     """
         This function identifies all steady state operation
@@ -406,6 +433,12 @@ def ss_identifier(
         ss_time: float
             length of desired steady state period in seconds.
             Defaulted to be 900.
+
+        all_conditions: list
+            a list of additional conditions in strings that you want to
+            use in the detector. For instance, 'TEI[ind] > 0' means that you
+            want the values in the column 'TEI' in the DataFrame to be
+            above 0 for all steady state period. Default empty
 
         Outputs:
         ===========
@@ -465,7 +498,43 @@ def ss_identifier(
     col_bool_names = abs_slope_cols+rel_slope_cols
     ind = df.index[0]
     df_options = []
+
+    # reconfigure extra condition statements
+    config_conds = []
+    pos_opr = ['!=', '==', '>=', '<=', '>', '<']  # the longer ones go first
+    for condition in all_conditions:
+        count = 0
+        for op_str in pos_opr:
+            op_pos = condition.find(op_str)
+            if op_pos >= 0:
+                if issubclass(type(
+                    eval('df.'+condition[0:op_pos]+'.tolist()[0]')
+                ), misc_func.OptionalVariable):
+                    # add .get() to the end to obtain
+                    # the value from OptionalVariable()
+                    config_conds.append(
+                        'df.'+condition[0:op_pos].strip()+'[ind].get()' +
+                        condition[op_pos:]
+                    )
+                else:
+                    config_conds.append(
+                        'df.'+condition[0:op_pos].strip()+'[ind]' +
+                        condition[op_pos:]
+                    )
+                break
+            else:
+                count = count+1
+        if count == len(pos_opr):
+            raise(
+                "Improper condition "+condition +
+                "to "+inspect.stack()[0][3]+"() "
+            )
+
+    # finding steady state periods
     while ind <= df.index[-1]:
+        # shift ind to somewhere it exists
+        while ind not in df.index.values:
+            ind = ind+1
         # check if the values are defined
         check_bool = [df[name][ind] for name in col_bool_names]
         if all(check_bool):
@@ -476,6 +545,9 @@ def ss_identifier(
                 _compare(name, thres, ind)
                 for (name, thres) in zip(rel_slope_cols, rel_slope_thres)
             ]
+            # implementing extra conditions
+            for cond in config_conds:
+                slope_bools = slope_bools+[eval(cond)]
             # check if the values are within range
             if all(slope_bools):
                 # create a new DaraFrame for the steady state data
@@ -498,10 +570,12 @@ def ss_identifier(
                 # skip time by deltaT
                 next_timestamp = df[df.details[time_col_name]][ind]+deltaT
                 ind = ind+1
-                while ind <= df.index[-1] and \
-                        df[df.details[time_col_name]][ind] < next_timestamp:
+                while ind <= df.index[-1] and (
+                    ind not in df.index.values or
+                    df[df.details[time_col_name]][ind] < next_timestamp
+                ):
                     ind = ind+1
-                ind = ind-1 # shift back for the increment at the end
+                ind = ind-1  # shift back for the increment at the end
         ind = ind+1
 
     # return the list of df_option
