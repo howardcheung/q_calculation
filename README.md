@@ -1,4 +1,4 @@
-#q_calculation
+#Introduction
 
 This repository is used to share codes that used to calculate heat transfer rates from experimental data of a heat exchanger.
 
