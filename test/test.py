@@ -1,5 +1,14 @@
 #!/usr/bin/python
 
+"""
+    This file is a script demonstrating a more thorough analysis
+    with multiple files. For detailed discussion, please check
+    /demo/Demonstration.ipynb
+"""
+
+import sys
+sys.path.insert(0, '../src/')  # import modules from another folder
+
 import data_read as dread
 import data_summary as ds
 import misc_func as misc
@@ -7,20 +16,14 @@ import misc_func as misc
 # information of differen files
 # file paths of different data files
 filepaths = [
-    '../Benchmark Tests/normal_complete.csv',
-    '../Benchmark Tests/normal_r1.csv',
-    '../Refrigerant leak/rl10.csv', '../Refrigerant leak/rl20.csv',
-    '../Refrigerant leak/rl30.csv', '../Refrigerant leak/rl40.csv',
-    '../Refrigerant leak/rl40alt.csv',
-    '../Refrigerant overcharge/ro10.csv', '../Refrigerant overcharge/ro20.csv',
-    '../Refrigerant overcharge/ro30.csv', '../Refrigerant overcharge/ro40.csv'
+    '../data/test_data.csv', '../data/test_data_02.csv'
 ]
 # fault type in different files, ordered in the same way as
 # list filepaths
-fault_types = ['NoF', 'NoF', 'UC', 'UC', 'UC', 'UC', 'UC', 'OC', 'OC', 'OC', 'OC']
+fault_types = ['UC', 'NoF']
 # fault levels in different files, ordered in the same way as
 # list filepaths
-fault_levels = ['0', '0', '10', '20', '30', '40', '40', '10', '20', '30', '40']
+fault_levels = ['10', '0']
 
 # information that is the same in all files
 alpha = 0.95  # alpha value for confidence intervals
@@ -203,7 +206,7 @@ for filepath, fault_type, fault_level in zip(
 
 # print results
 ds.print_data(
-    all_ss_df_options, './test_file.csv',
+    all_ss_df_options, '../result/test_file.csv',
     detail_names=[
         'TEI_K_mean', 'TEO_K_mean',
         'TCI_K_mean', 'TCO_K_mean', 'TWE_set_K_mean',
