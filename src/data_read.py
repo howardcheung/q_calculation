@@ -21,24 +21,15 @@ ss_time_col_name = 'ss_time'
 
 
 def read_csv_option(filepath):
-    """
+    """        
         Read the csv file to create a dataframe. If the csv
         file does not exist, include it in the error message.
         Return OptionalVariable() with error messages in it.
 
-        Inputs:
-        ===========
         filepath: string
             a string showing the path or filename
             from the current working directory
 
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas Dataframe obtained by
-            reading a raw csv from Comstock data file.
-            If the file does not exist, set the error of the
-            variable that the file does not exist
     """
 
     df_option = misc_func.OptionalVariable()
@@ -66,10 +57,11 @@ def unit_convert(
     """
         This function converts the temperature
         readings with T in the beginning from degree Fahrenheit
-        to Kelvin and put them back to the dataframe
+        to Kelvin and put them back to the Dataframe. Return
+        a misc_func.OptionalVariable() variable contains a
+        pandas DataFrame with multiple columns with their names
+        ended with the new unit.
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file
@@ -81,21 +73,14 @@ def unit_convert(
         init_unit: string
             unit of the original values.
             'F' stands for degree Fahrenheit
-            'C' stands for degree centigrade. Default 'F'
+            'C' stands for degree centigrade. Defaulted 'F'
             'GPM' stands for gallons per minute
 
         final_unit: string
             unit of the original values. 'K' stands for
             Kelvin and 'C' stands for degree
-            centigrade. Default 'K'
+            centigrade. Defaulted 'K'
             'm3s' stands for m3/s
-
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file with
-            temperature in K included
     """
 
     # define function to do unit conversion for each
@@ -141,25 +126,17 @@ def unit_convert(
 
 def time_indication(df_option, time_string):
     """
-        This function appends the column name for time
-        to the dataframe
+        This function returns a misc_func.OptionalVariable()
+        with the 'details' attribute in the pandas
+        DataFrame. To call the column name, use the
+        key name 'time_col'.
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file
 
         time_string: string
             a string for column name of the time column
-
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file. It contains
-            'time_col' in df_option.get().details that
-            which column stores the time indicators
     """
 
     # check if the dataframe is defined
@@ -180,11 +157,10 @@ def time_indication(df_option, time_string):
 
 def fault_allocation(df_option, fault_type, fault_level):
     """
-        This function appends the type and level of fault
-        tested in the dataframe as a new column to the data
+        This function returns a misc_func.OptionalVariable()
+        with details about faults appended to the 'details'
+        attribute with key names 'fault_type' and 'fault_level'
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file
@@ -195,15 +171,6 @@ def fault_allocation(df_option, fault_type, fault_level):
         fault_level: float
             a float for a dimensionless fault level
             in the test
-
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file. It contains
-            'fault_type' and 'fault_level' in
-            df_option.get().details that shows the details
-            about the faults
     """
 
     # check if the dataframe is defined
@@ -231,10 +198,9 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
         corresponding to the end time of the window. It also introduces
         a column called 'beg_index' to indicate when the steady
         state starts and 'ss_time' in details to indicate the length of
-        potential steady state period.
+        potential steady state period. It returns the df_option variable
+        with the newly appended columns.
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file.
@@ -262,12 +228,6 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
             length of desired steady state period in seconds.
             Defaulted to be 900.
 
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file. The values calculated
-            are misc_func.OptionalVariable().
     """
 
     # check if the dataframe is defined appropriately
@@ -395,10 +355,11 @@ def ss_identifier(
         This function identifies all steady state operation
         within a data series and return multiple pandas
         Dataframe in a list. These outputs also carries
-        the 'details' attribute from the original Dataframe
+        the 'details' attribute from the original Dataframe.
+        This function returns a list of misc_func.OptionalVariable()
+        that contains pandas DataFrame objects separately with
+        each DataFrame represents one steady state time series.
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains the original data series in pandas Dataframe.
 
@@ -439,13 +400,6 @@ def ss_identifier(
             use in the detector. For instance, 'TEI[ind] > 0' means that you
             want the values in the column 'TEI' in the DataFrame to be
             above 0 for all steady state period. Default empty
-
-        Outputs:
-        ===========
-        df_options: list
-            list of misc_func.OptionalVariable() that
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file.
     """
 
     # check if the dataframe is defined appropriately
