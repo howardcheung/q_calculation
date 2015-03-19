@@ -31,10 +31,9 @@ def append_uncer_to_df(
 ):
     """
         This function appends uncertainty to the data in
-        the DataFrame to df_option
+        the DataFrame in df_option and returns df_option
+        with new columns named in the pattern of (mea_col_name+'_uncer').
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file.
@@ -50,15 +49,6 @@ def append_uncer_to_df(
         rel_uncer: float
             uncertainty from manufacturer of device measured as
             a ratio to the measurement in mea_col_name. Default 0.0.
-
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file. Its DataFrame
-            contains an extra column with name (mea_col_name+'_uncer')
-            for uncertainty values in the same unit as the data
-            in mea_col_name
     """
 
     # check inputs
@@ -99,10 +89,9 @@ def data_mean_cal(df_option, col_names, alpha=0.95):
     """
         This function calculates the mean of data stored in
         column col_names and pass the results (mean and uncertainty)
-        to the 'details' attribute in the DataFrame
+        to the 'details' attribute in the DataFrame. It returns
+        df_option with the new attributes.
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file.
@@ -115,15 +104,6 @@ def data_mean_cal(df_option, col_names, alpha=0.95):
         alpha: float
             level of confidence interval you want in the uncertainty
             of the mean. Default 0.95
-
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file. The 'details'
-            attribute contain extra information that summarizes
-            the data point with the mean and uncertainty of
-            the mean of the data
     """
 
     # check inputs
@@ -183,10 +163,11 @@ def cal_mdot(vdot, tvdot, vdot_uncer, tvdot_uncer, medium):
     """
         This function calculates the mass flow rate
         based on volumetric flow rate and temperature
-        measured at the flow rate station
+        measured at the flow rate station. It returns
+        two OptionalVariable(): "mdot" for mass flow rate and
+        "mdot_uncer" for the uncertainty of the mass flow rate,
+        and both are in kg/s.
 
-        Inputs:
-        ===========
         vdot: float
             volumetric flow rate in m3/s.
 
@@ -203,14 +184,6 @@ def cal_mdot(vdot, tvdot, vdot_uncer, tvdot_uncer, medium):
 
         medium: string
             name of medium in the flow
-
-        Outputs:
-        ===========
-        mdot: OptionalVariable()
-            contains mass flow rate in kg/s
-
-        mdot_uncer: OptionalVariable()
-            contains uncertainty of mass flow rate in kg/s
     """
 
     # change all inputs to ordinary variables
@@ -265,10 +238,11 @@ def cal_mdotdeltah_water(
     """
         This function calculates mdot*(hout-hin) and
         the uncertainty propagated from the inputs for
-        water flow
+        water flow. Returns "q" in OptionalVariable() for the
+        value from mdot*(hout-hin) and "q_uncer" in OptionalVariable()
+        for the uncertainty of the value mdot*(hout-hin). Both values
+        are recorded in W.
 
-        Inputs:
-        ===========
         vdot: float
             volumetric flow rate in m3/s. If you are measuring
             mass flow rate in kg/s, set it to float('-inf') and enter
@@ -309,14 +283,6 @@ def cal_mdotdeltah_water(
         mdot_uncer: float
             uncertainty of mass flow rate in kg/s. If you measure volumetric
             float rate, set it to float('-inf'). Default float('-inf').
-
-        Outputs:
-        ===========
-        q: OptionalVariable()
-            mdot*(hout-hin) in W
-
-        q_uncer: OptionalVariable()
-            uncertainty of mdot*(hout-hin) from its inputs in W
     """
 
     # change all inputs to ordinary variables
@@ -409,10 +375,9 @@ def cal_q_from_sample_result(
         This function calculates the heat transfer rate and its
         uncertainty of a heat exchanger from the mean observations
         of properties. It stores the information to the 'details'
-        attribute of the DataFrame.
+        attribute of the DataFrame and returns df_option with the new
+        entries to the 'details' attribute.
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file with
@@ -443,15 +408,6 @@ def cal_q_from_sample_result(
         mdot_col_name: string
             column name for volumetric flow rate value in kg/s.
             Default empty.
-
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file. The 'details'
-            attribute contain extra information that summarizes
-            the data point with heat transfer rate and its
-            uncertainty
     """
 
     # check inputs
@@ -505,10 +461,10 @@ def cal_mdotdeltah_per_time(
 ):
     """
         This function calculates the instantaneous mdot*(hout-hin)
-        at each time stamp and stores it in the DataFrame
+        and its uncertainty at each time stamp. The function stores
+        append them to the DataFrame in columns 'mdotdeltah' and
+        'mdotdeltah_uncer' in W and returns df_option.
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file
@@ -542,14 +498,6 @@ def cal_mdotdeltah_per_time(
         mdot_col_name: string
             column name for volumetric flow rate value in kg/s.
             Default empty.
-
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file. It contains new
-            columns 'mdotdeltah' and 'mdotdeltah_uncer' in W
-            for future calculation
     """
 
     # check inputs
@@ -607,10 +555,11 @@ def cal_q_from_ind_mea(
         This function integrates the mdotdeltah column result
         according to the user-defined period per sample. The heat
         transfer rates from each sample are averaged to obtain the
-        mean heat transfer rate.
+        mean heat transfer rate. It returns df_option with
+        the 'details' attribute contain extra information that summarizes
+        the data point with heat transfer rate and its
+        uncertainty with deltat in its name.
 
-        Inputs:
-        ===========
         df_option: misc_func.OptionalVariable()
             contains pandas dataframe obtained by
             reading a raw csv from Comstock data file
@@ -626,15 +575,6 @@ def cal_q_from_ind_mea(
         alpha: float
             level of confidence interval you want in the uncertainty
             of the mean. Default 0.95
-
-        Outputs:
-        ===========
-        df_option: misc_func.OptionalVariable()
-            contains pandas dataframe obtained by reading
-            a raw csv from Comstock data file. The 'details'
-            attribute contain extra information that summarizes
-            the data point with heat transfer rate and its
-            uncertainty with deltat in its name
     """
 
     # check inputs
@@ -744,8 +684,6 @@ def print_data(ss_df_options, csv_path, detail_names):
         Print the data in ss_df_options details into a summary
         file.
 
-        Inputs:
-        ===========
         ss_df_options: list
             list of misc_func.OptionalVariable() that contains
             a pandas DataFrame with 'details' attribute
@@ -758,7 +696,6 @@ def print_data(ss_df_options, csv_path, detail_names):
             pandas DataFrams in ss_df_options that you want
             to print in the file. They should be in the order
             of your output
-
     """
 
     # write file
