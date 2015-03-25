@@ -1,0 +1,752 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Documentation of modules in q_calculation &mdash; Data_analysis 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Data_analysis 0.1 documentation" href="main_directive.html" />
+    <link rel="prev" title="Theory behind q_calcualtion" href="theory.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="theory.html" title="Theory behind q_calcualtion"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="main_directive.html">Data_analysis 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="documentation-of-modules-in-q-calculation">
+<h1>Documentation of modules in <em>q_calculation</em><a class="headerlink" href="#documentation-of-modules-in-q-calculation" title="Permalink to this headline">¶</a></h1>
+<p>This page shows the documentation of the modules in this project:</p>
+</div>
+<div class="section" id="data-read-module-to-obtain-time-series-data-at-steady-state">
+<h1><em>data_read</em>: Module to obtain time-series data at steady state<a class="headerlink" href="#data-read-module-to-obtain-time-series-data-at-steady-state" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-data_read"></span><p>This file contains scripts to read and process the data
+so as to output pandas dataframes with each dataframe
+representing a steady state time series</p>
+<dl class="function">
+<dt id="data_read.cal_for_ss">
+<code class="descclassname">data_read.</code><code class="descname">cal_for_ss</code><span class="sig-paren">(</span><em>df_option</em>, <em>cal_method='mean'</em>, <em>col_names=[]</em>, <em>ss_time=900</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_read.html#cal_for_ss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_read.cal_for_ss" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates steady state values of measurement
+done in a time window specified in ss_time. The
+averages will be stored in the Dataframe on the row
+corresponding to the end time of the window. It also introduces
+a column called &#8216;beg_index&#8217; to indicate when the steady
+state starts and &#8216;ss_time&#8217; in details to indicate the length of
+potential steady state period. It returns the df_option variable
+with the newly appended columns.</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file.
+df_option.get().details.time_col must be defined
+before use. The time column values should also be in
+seconds.</dd>
+<dt>cal_method: string</dt>
+<dd>whether you want
+&#8216;mean&#8217;: averages of values
+&#8216;abs_slope&#8217;: average rate of change of values
+&#8216;rel_slope&#8217;: average rate of change of values relative to
+the mean value within the same period
+&#8216;min&#8217;: minimum of values
+&#8216;max&#8217;: maximum of values
+Default &#8216;mean&#8217;</dd>
+<dt>col_names: list</dt>
+<dd>list of strings for names of columns to be averaged.
+If the list is empty, the function will only create a
+new column &#8216;beg_index&#8217; that marks the beginning of
+potential steady states. Default empty.</dd>
+<dt>ss_time: float</dt>
+<dd>length of desired steady state period in seconds.
+Defaulted to be 900.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_read.fault_allocation">
+<code class="descclassname">data_read.</code><code class="descname">fault_allocation</code><span class="sig-paren">(</span><em>df_option</em>, <em>fault_type</em>, <em>fault_level</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_read.html#fault_allocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_read.fault_allocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function returns a misc_func.OptionalVariable()
+with details about faults appended to the &#8216;details&#8217;
+attribute with key names &#8216;fault_type&#8217; and &#8216;fault_level&#8217;</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file</dd>
+<dt>fault_type: string</dt>
+<dd>a string for the fault type in the test</dd>
+<dt>fault_level: float</dt>
+<dd>a float for a dimensionless fault level
+in the test</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_read.read_csv_option">
+<code class="descclassname">data_read.</code><code class="descname">read_csv_option</code><span class="sig-paren">(</span><em>filepath</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_read.html#read_csv_option"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_read.read_csv_option" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read the csv file to create a dataframe. If the csv
+file does not exist, include it in the error message.
+Return OptionalVariable() with error messages in it.</p>
+<dl class="docutils">
+<dt>filepath: string</dt>
+<dd>a string showing the path or filename
+from the current working directory</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_read.ss_identifier">
+<code class="descclassname">data_read.</code><code class="descname">ss_identifier</code><span class="sig-paren">(</span><em>df_option</em>, <em>col_names</em>, <em>abs_slope_cols</em>, <em>rel_slope_cols</em>, <em>abs_slope_thres</em>, <em>rel_slope_thres</em>, <em>deltaT=900</em>, <em>ss_time=900</em>, <em>all_conditions=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_read.html#ss_identifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_read.ss_identifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function identifies all steady state operation
+within a data series and return multiple pandas
+Dataframe in a list. These outputs also carries
+the &#8216;details&#8217; attribute from the original Dataframe.
+This function returns a list of misc_func.OptionalVariable()
+that contains pandas DataFrame objects separately with
+each DataFrame represents one steady state time series.</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains the original data series in pandas Dataframe.</dd>
+<dt>col_names: list</dt>
+<dd>list of strings containing the column names that
+you want to pass to the new dataframes</dd>
+<dt>abs_slope_cols: list</dt>
+<dd>list of strings for names of columns where the
+average rate of change is calculated</dd>
+<dt>rel_slope_cols: list</dt>
+<dd>list of strings for names of columns where the
+relative average rate of change is calculated</dd>
+<dt>abs_slope_thres: list</dt>
+<dd>values of threshold which the magnitude if the average
+rate of change should be smaller than to accept the
+operation as steady state. Should be in the same order
+as abs_slope_cols</dd>
+<dt>rel_slope_thres: list</dt>
+<dd>values of threshold which the magnitude if the relative average
+rate of change should be smaller than to accept the
+operation as steady state. Should be in the same order
+as rel_slope_cols</dd>
+<dt>deltaT: float</dt>
+<dd>minimum time in seconds between two steady state operation.
+Defaulted at 900</dd>
+<dt>ss_time: float</dt>
+<dd>length of desired steady state period in seconds.
+Defaulted to be 900.</dd>
+<dt>all_conditions: list</dt>
+<dd>a list of additional conditions in strings that you want to
+use in the detector. For instance, &#8216;TEI[ind] &gt; 0&#8217; means that you
+want the values in the column &#8216;TEI&#8217; in the DataFrame to be
+above 0 for all steady state period. Default empty</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_read.time_indication">
+<code class="descclassname">data_read.</code><code class="descname">time_indication</code><span class="sig-paren">(</span><em>df_option</em>, <em>time_string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_read.html#time_indication"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_read.time_indication" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function returns a misc_func.OptionalVariable()
+with the &#8216;details&#8217; attribute in the pandas
+DataFrame. To call the column name, use the
+key name &#8216;time_col&#8217;.</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file</dd>
+<dt>time_string: string</dt>
+<dd>a string for column name of the time column</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_read.unit_convert">
+<code class="descclassname">data_read.</code><code class="descname">unit_convert</code><span class="sig-paren">(</span><em>df_option</em>, <em>col_names=[]</em>, <em>init_unit='F'</em>, <em>final_unit='K'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_read.html#unit_convert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_read.unit_convert" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function converts the temperature
+readings with T in the beginning from degree Fahrenheit
+to Kelvin and put them back to the Dataframe. Return
+a misc_func.OptionalVariable() variable contains a
+pandas DataFrame with multiple columns with their names
+ended with the new unit.</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file</dd>
+<dt>col_names: list of strings</dt>
+<dd>column names with temperature readings that
+you would like to do the conversion</dd>
+<dt>init_unit: string</dt>
+<dd>unit of the original values.
+&#8216;F&#8217; stands for degree Fahrenheit
+&#8216;C&#8217; stands for degree centigrade. Defaulted &#8216;F&#8217;
+&#8216;GPM&#8217; stands for gallons per minute</dd>
+<dt>final_unit: string</dt>
+<dd>unit of the original values. &#8216;K&#8217; stands for
+Kelvin and &#8216;C&#8217; stands for degree
+centigrade. Defaulted &#8216;K&#8217;
+&#8216;m3s&#8217; stands for m3/s</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="data-summary-module-to-create-a-human-readable-summary-from-time-series-data">
+<h1><em>data_summary</em>: Module to create a human-readable summary from time-series data<a class="headerlink" href="#data-summary-module-to-create-a-human-readable-summary-from-time-series-data" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-data_summary"></span><p>This file contains scripts from machine readable data to human-friendly
+summaries from the water-side measurement of a heat exchanger</p>
+<dl class="function">
+<dt id="data_summary.append_uncer_to_df">
+<code class="descclassname">data_summary.</code><code class="descname">append_uncer_to_df</code><span class="sig-paren">(</span><em>df_option</em>, <em>mea_col_name</em>, <em>abs_uncer=0.0</em>, <em>rel_uncer=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_summary.html#append_uncer_to_df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_summary.append_uncer_to_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function appends uncertainty to the data in
+the DataFrame in df_option and returns df_option
+with new columns named in the pattern of (mea_col_name+&#8217;_uncer&#8217;).</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file.</dd>
+<dt>mea_col_name: string</dt>
+<dd>column name containing the data which uncertainty
+is going to be appended</dd>
+<dt>abs_uncer: float</dt>
+<dd>uncertainty from manufacturer of device measured in
+the same unit as the data in mea_col_name. Default 0.0.</dd>
+<dt>rel_uncer: float</dt>
+<dd>uncertainty from manufacturer of device measured as
+a ratio to the measurement in mea_col_name. Default 0.0.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_summary.cal_mdot">
+<code class="descclassname">data_summary.</code><code class="descname">cal_mdot</code><span class="sig-paren">(</span><em>vdot</em>, <em>tvdot</em>, <em>vdot_uncer</em>, <em>tvdot_uncer</em>, <em>medium</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_summary.html#cal_mdot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_summary.cal_mdot" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates the mass flow rate
+based on volumetric flow rate and temperature
+measured at the flow rate station. It returns
+two OptionalVariable(): &#8220;mdot&#8221; for mass flow rate and
+&#8220;mdot_uncer&#8221; for the uncertainty of the mass flow rate,
+and both are in kg/s.</p>
+<dl class="docutils">
+<dt>vdot: float</dt>
+<dd>volumetric flow rate in m3/s.</dd>
+<dt>tvdot: float</dt>
+<dd>temperature measurement in K at flow rate measurement
+station.</dd>
+<dt>vdot_uncer: float</dt>
+<dd>uncertainty of volumetric flow rate in m3/s.</dd>
+<dt>tvdot_uncer: float</dt>
+<dd>temperature measurement in K at flow rate measurement
+station.</dd>
+<dt>medium: string</dt>
+<dd>name of medium in the flow</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_summary.cal_mdotdeltah_per_time">
+<code class="descclassname">data_summary.</code><code class="descname">cal_mdotdeltah_per_time</code><span class="sig-paren">(</span><em>df_option</em>, <em>vdot_col_name</em>, <em>tvdot_col_name</em>, <em>tout_col_name</em>, <em>tin_col_name</em>, <em>hx_name='hx'</em>, <em>mdot_col_name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_summary.html#cal_mdotdeltah_per_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_summary.cal_mdotdeltah_per_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates the instantaneous mdot*(hout-hin)
+and its uncertainty at each time stamp. The function stores
+append them to the DataFrame in columns &#8216;mdotdeltah&#8217; and
+&#8216;mdotdeltah_uncer&#8217; in W and returns df_option.</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file</dd>
+<dt>vdot_col_name: string</dt>
+<dd>column name for volumetric flow rate value in m3/s.
+If mass flow rate is measured, set this to empty string and
+put the mass flow rate column name to mdot_col_name</dd>
+<dt>tvdot_col_name: string</dt>
+<dd>column name for temperature value at flow rate measurement
+station in K. Set this to empty string if mass flow rate
+is measured</dd>
+<dt>tout_col_name: string</dt>
+<dd>column name for temperature value at heat exchanger outlet
+station in K</dd>
+<dt>tin_col_name: string</dt>
+<dd>column name for temperature value at heat exchanger outlet
+station in K</dd>
+<dt>deltat: float</dt>
+<dd>period of measurement per sample in seconds. If you want to
+the mean of instantaneous heat transfer rate, set it to 0.
+Default 10.</dd>
+<dt>hx_name: string</dt>
+<dd>name of heat exchanger that is under analyzed. Default &#8216;hx&#8217;</dd>
+<dt>mdot_col_name: string</dt>
+<dd>column name for volumetric flow rate value in kg/s.
+Default empty.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_summary.cal_mdotdeltah_water">
+<code class="descclassname">data_summary.</code><code class="descname">cal_mdotdeltah_water</code><span class="sig-paren">(</span><em>vdot</em>, <em>tvdot</em>, <em>tout</em>, <em>tin</em>, <em>vdot_uncer</em>, <em>tvdot_uncer</em>, <em>tout_uncer</em>, <em>tin_uncer</em>, <em>mdot=-inf</em>, <em>mdot_uncer=-inf</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_summary.html#cal_mdotdeltah_water"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_summary.cal_mdotdeltah_water" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates mdot*(hout-hin) and
+the uncertainty propagated from the inputs for
+water flow. Returns &#8220;q&#8221; in OptionalVariable() for the
+value from mdot*(hout-hin) and &#8220;q_uncer&#8221; in OptionalVariable()
+for the uncertainty of the value mdot*(hout-hin). Both values
+are recorded in W.</p>
+<dl class="docutils">
+<dt>vdot: float</dt>
+<dd>volumetric flow rate in m3/s. If you are measuring
+mass flow rate in kg/s, set it to float(&#8216;-inf&#8217;) and enter
+mass flow rate at variable mdot.</dd>
+<dt>tvdot: float</dt>
+<dd>temperature measurement in K at flow rate measurement
+station. If you are measuring
+mass flow rate in kg/s, set it to 0.0.</dd>
+<dt>tout: float</dt>
+<dd>temperature measurement of water at outlet in K</dd>
+<dt>tin: float</dt>
+<dd>temperature measurement of water at inlet in K</dd>
+<dt>vdot_uncer: float</dt>
+<dd>uncertainty of volumetric flow rate in m3/s. If you
+are measuring mass flow rate in kg/s, set it to float(&#8216;-inf&#8217;)
+and enter the uncertainty of mass flow rate at
+variable mdot_uncer.</dd>
+<dt>tvdot_uncer: float</dt>
+<dd>temperature measurement in K at flow rate measurement
+station. If you are measuring mass flow rate in kg/s,
+set it to zero.</dd>
+<dt>tout_uncer: float</dt>
+<dd>uncertainty of temperature measurement of water at outlet in K</dd>
+<dt>tin: float</dt>
+<dd>uncertainty of temperature measurement of water at inlet in K</dd>
+<dt>mdot: float</dt>
+<dd>mass flow rate in kg/s. If you measure volumetric
+float rate, set it to float(&#8216;-inf&#8217;). Default float(&#8216;-inf&#8217;).</dd>
+<dt>mdot_uncer: float</dt>
+<dd>uncertainty of mass flow rate in kg/s. If you measure volumetric
+float rate, set it to float(&#8216;-inf&#8217;). Default float(&#8216;-inf&#8217;).</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_summary.cal_q_from_ind_mea">
+<code class="descclassname">data_summary.</code><code class="descname">cal_q_from_ind_mea</code><span class="sig-paren">(</span><em>df_option</em>, <em>deltat=0</em>, <em>hx_name='hx'</em>, <em>alpha=0.95</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_summary.html#cal_q_from_ind_mea"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_summary.cal_q_from_ind_mea" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function integrates the mdotdeltah column result
+according to the user-defined period per sample. The heat
+transfer rates from each sample are averaged to obtain the
+mean heat transfer rate. It returns df_option with
+the &#8216;details&#8217; attribute contain extra information that summarizes
+the data point with heat transfer rate and its
+uncertainty with deltat in its name.</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file</dd>
+<dt>deltat: float</dt>
+<dd>period of measurement per sample in seconds. If you want to
+the mean of instantaneous heat transfer rate, set it to 0.
+Default 10.</dd>
+<dt>hx_name: string</dt>
+<dd>name of heat exchanger that is under analyzed. Default &#8216;hx&#8217;</dd>
+<dt>alpha: float</dt>
+<dd>level of confidence interval you want in the uncertainty
+of the mean. Default 0.95</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_summary.cal_q_from_sample_result">
+<code class="descclassname">data_summary.</code><code class="descname">cal_q_from_sample_result</code><span class="sig-paren">(</span><em>df_option</em>, <em>vdot_col_name</em>, <em>tvdot_col_name</em>, <em>tout_col_name</em>, <em>tin_col_name</em>, <em>hx_name='hx'</em>, <em>mdot_col_name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_summary.html#cal_q_from_sample_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_summary.cal_q_from_sample_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates the heat transfer rate and its
+uncertainty of a heat exchanger from the mean observations
+of properties. It stores the information to the &#8216;details&#8217;
+attribute of the DataFrame and returns df_option with the new
+entries to the &#8216;details&#8217; attribute.</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file with
+mean values of observations stroed in the &#8216;details&#8217;
+attribute</dd>
+<dt>vdot_col_name: string</dt>
+<dd>column name for volumetric flow rate value in m3/s.
+If mass flow rate is measured, set this to empty string and
+put the mass flow rate column name to mdot_col_name</dd>
+<dt>tvdot_col_name: string</dt>
+<dd>column name for temperature value at flow rate measurement
+station in K. Set this to empty string if mass flow rate
+is measured</dd>
+<dt>tout_col_name: string</dt>
+<dd>column name for temperature value at heat exchanger outlet
+station in K</dd>
+<dt>tin_col_name: string</dt>
+<dd>column name for temperature value at heat exchanger outlet
+station in K</dd>
+<dt>hx_name: string</dt>
+<dd>name of heat exchanger. Default &#8216;hx&#8217;</dd>
+<dt>mdot_col_name: string</dt>
+<dd>column name for volumetric flow rate value in kg/s.
+Default empty.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_summary.data_mean_cal">
+<code class="descclassname">data_summary.</code><code class="descname">data_mean_cal</code><span class="sig-paren">(</span><em>df_option</em>, <em>col_names</em>, <em>alpha=0.95</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_summary.html#data_mean_cal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_summary.data_mean_cal" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates the mean of data stored in
+column col_names and pass the results (mean and uncertainty)
+to the &#8216;details&#8217; attribute in the DataFrame. It returns
+df_option with the new attributes.</p>
+<dl class="docutils">
+<dt>df_option: misc_func.OptionalVariable()</dt>
+<dd>contains pandas dataframe obtained by
+reading a raw csv from Comstock data file.</dd>
+<dt>col_names: list</dt>
+<dd>list of strings for the names of the columns to
+be summarized with their mean and uncertainty of
+the mean</dd>
+<dt>alpha: float</dt>
+<dd>level of confidence interval you want in the uncertainty
+of the mean. Default 0.95</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_summary.print_data">
+<code class="descclassname">data_summary.</code><code class="descname">print_data</code><span class="sig-paren">(</span><em>ss_df_options</em>, <em>csv_path</em>, <em>detail_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_summary.html#print_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_summary.print_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the data in ss_df_options details into a summary
+file.</p>
+<dl class="docutils">
+<dt>ss_df_options: list</dt>
+<dd>list of misc_func.OptionalVariable() that contains
+a pandas DataFrame with &#8216;details&#8217; attribute</dd>
+<dt>csv_path: string</dt>
+<dd>path and name of the file with the csv extension.</dd>
+<dt>detail_names: list</dt>
+<dd>the key names in the &#8216;details&#8217; attribute in the
+pandas DataFrams in ss_df_options that you want
+to print in the file. They should be in the order
+of your output</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="misc-func-module-containing-basic-functions-to-support-other-modules">
+<h1><em>misc_func</em>: Module containing basic functions to support other modules<a class="headerlink" href="#misc-func-module-containing-basic-functions-to-support-other-modules" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-misc_func"></span><p>This file contains misc. scripts including the calculation of
+absolute and relative slope of the change</p>
+<dl class="exception">
+<dt id="misc_func.IncorrectFileError">
+<em class="property">exception </em><code class="descclassname">misc_func.</code><code class="descname">IncorrectFileError</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#IncorrectFileError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.IncorrectFileError" title="Permalink to this definition">¶</a></dt>
+<dd><p>This error class occurred when the file to
+be read does not match the expected type.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="misc_func.OptionalVariable">
+<em class="property">class </em><code class="descclassname">misc_func.</code><code class="descname">OptionalVariable</code><a class="reference internal" href="_modules/misc_func.html#OptionalVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.OptionalVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function stores a boolean and a variable. It returns true
+if it contains a valid value, and returns false if it doesn&#8217;t.
+If you want to change the value, you need to use the function
+get and set. If you want to reinitialize the OptionalVariable,
+use the function clear. If you want to see or set the
+Exception e, use function getError or setError.</p>
+<dl class="docutils">
+<dt>_exist: boolean</dt>
+<dd>indicates if the variable contains a valid object in var</dd>
+<dt>_var: anything</dt>
+<dd>if _exist is true, it should have a valid variable, no
+default if exist is false. No default.</dd>
+<dt>_e: Exception</dt>
+<dd>Exception object recording the cause of no value in var.
+Defaulted AttributeError(&#8220;No assignment after initialization&#8221;)</dd>
+</dl>
+<dl class="method">
+<dt id="misc_func.OptionalVariable.check">
+<code class="descname">check</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#OptionalVariable.check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.OptionalVariable.check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise the previous error if var is not defined.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misc_func.OptionalVariable.check_type">
+<code class="descname">check_type</code><span class="sig-paren">(</span><em>type_expect</em>, <em>func_name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#OptionalVariable.check_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.OptionalVariable.check_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise an error if var is a class of the type
+expected. Also use the function check to check if
+var is defined.</p>
+<dl class="docutils">
+<dt>type_expect: type</dt>
+<dd>type of variable expected in self._var</dd>
+<dt>func_name: string</dt>
+<dd>name of function. Default &#8220;&#8221;</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="misc_func.OptionalVariable.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#OptionalVariable.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.OptionalVariable.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clear var</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misc_func.OptionalVariable.get">
+<code class="descname">get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#OptionalVariable.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.OptionalVariable.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns var</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misc_func.OptionalVariable.getError">
+<code class="descname">getError</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#OptionalVariable.getError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.OptionalVariable.getError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check error value</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misc_func.OptionalVariable.set">
+<code class="descname">set</code><span class="sig-paren">(</span><em>var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#OptionalVariable.set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.OptionalVariable.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize and set variables var and type</p>
+<dl class="docutils">
+<dt>var: anything</dt>
+<dd>variable to be set to var</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="misc_func.OptionalVariable.setError">
+<code class="descname">setError</code><span class="sig-paren">(</span><em>ee</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#OptionalVariable.setError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.OptionalVariable.setError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set error value for unsuccessful assignment</p>
+<dl class="docutils">
+<dt>ee: Exception</dt>
+<dd>Exception to be set to var</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.abs_slope">
+<code class="descclassname">misc_func.</code><code class="descname">abs_slope</code><span class="sig-paren">(</span><em>time_series</em>, <em>data_series</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#abs_slope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.abs_slope" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates the average rate of change
+of the data in the variable data_series per minute.
+Returns the average rate of change of data in data_series
+per minute as OptionalVariable. If the length of
+data_series and time_series is not the same, it returns False.</p>
+<dl class="docutils">
+<dt>time_series: list or numpy array</dt>
+<dd>a list of timestamps showing when the data
+in data_series are collected in seconds</dd>
+<dt>data_series:  list or numpy array</dt>
+<dd>a list of data collected</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.c2k">
+<code class="descclassname">misc_func.</code><code class="descname">c2k</code><span class="sig-paren">(</span><em>temp_C</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#c2k"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.c2k" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function converts temperature from degree centigrade
+to Kelvin. Returns a float of the temperature in K.</p>
+<dl class="docutils">
+<dt>temp_C: float or numpy array</dt>
+<dd>temperature or temperature numpy array in
+degree centigrade</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.details_in_dataframe">
+<code class="descclassname">misc_func.</code><code class="descname">details_in_dataframe</code><span class="sig-paren">(</span><em>df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#details_in_dataframe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.details_in_dataframe" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class inherits the pandas DataFrame
+structure with new attributes related to the 
+testing conditions not listed in the DataFrame.
+Returns the DataFrame with the new attribute &#8216;details&#8217;.</p>
+<dl class="docutils">
+<dt>df: pandas Dataframe</dt>
+<dd>pandas Dataframe with test data</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.f2c">
+<code class="descclassname">misc_func.</code><code class="descname">f2c</code><span class="sig-paren">(</span><em>temp_F</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#f2c"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.f2c" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function converts temperature from degree Fahrenheit
+to degree centigrade. Returns a float of the temperature in C.</p>
+<dl class="docutils">
+<dt>temp_F: float or numpy array</dt>
+<dd>temperature or temperature numpy array in
+degree Fahrenheit</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.getOptionalVariable">
+<code class="descclassname">misc_func.</code><code class="descname">getOptionalVariable</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#getOptionalVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.getOptionalVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is used to get a value without
+when the value can be an ordinary float or
+OptionalVariable(). If it is OptionalVariable()
+and is undefined, it will output an error instead.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.gpm2m3s">
+<code class="descclassname">misc_func.</code><code class="descname">gpm2m3s</code><span class="sig-paren">(</span><em>gpm</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#gpm2m3s"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.gpm2m3s" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function converts volumetric flow from
+gallons per minute to m3/s. Returns a float
+of the temperature in m3/s.</p>
+<dl class="docutils">
+<dt>gpm: float or numpy array</dt>
+<dd>flow rate in gpm</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.k2c">
+<code class="descclassname">misc_func.</code><code class="descname">k2c</code><span class="sig-paren">(</span><em>temp_K</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#k2c"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.k2c" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function converts temperature from degree centigrade
+to Kelvin. Returns a float of the temperature in K.</p>
+<dl class="docutils">
+<dt>temp_K: float or numpy array</dt>
+<dd>temperature or temperature numpy array in
+Kelvin</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.r2k">
+<code class="descclassname">misc_func.</code><code class="descname">r2k</code><span class="sig-paren">(</span><em>temp_R</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#r2k"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.r2k" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function converts temperature from degree Rankine to Kelvin.
+Returns a float of the temperature in K.</p>
+<dl class="docutils">
+<dt>temp_F: float or numpy array</dt>
+<dd>temperature or temperature numpy array in
+degree Rankine</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.rel_slope">
+<code class="descclassname">misc_func.</code><code class="descname">rel_slope</code><span class="sig-paren">(</span><em>time_series</em>, <em>data_series</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#rel_slope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.rel_slope" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates the average rate of change
+of the data in the variable data_series per minute.
+Returns a misc_func.OptionalVariable with average
+rate of change of data in data_series per minute relative
+to the mean value of data in data_series. If the length
+of data_series and time_series is not the same, it returns
+False.</p>
+<dl class="docutils">
+<dt>time_series: list or numpy array</dt>
+<dd>a list of timestamps showing when the data
+in data_series are collected in seconds</dd>
+<dt>data_series:  list or numpy array</dt>
+<dd>a list of data collected</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.sqrt_sum_of_squares">
+<code class="descclassname">misc_func.</code><code class="descname">sqrt_sum_of_squares</code><span class="sig-paren">(</span><em>values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#sqrt_sum_of_squares"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.sqrt_sum_of_squares" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates the square root of the sum of squares
+from multiple entries in values. Returns an OptionalVariable
+containing the square root of the sum of squares.</p>
+<dl class="docutils">
+<dt>values: list or numpy array</dt>
+<dd>contains the values in the sum of squares</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_func.sum_of_squares">
+<code class="descclassname">misc_func.</code><code class="descname">sum_of_squares</code><span class="sig-paren">(</span><em>values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_func.html#sum_of_squares"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_func.sum_of_squares" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates the sum of squares of multiple
+entries in values. Returns an OptionalVariable containing
+the sum of squares.</p>
+<dl class="docutils">
+<dt>values: list or numpy array</dt>
+<dd>contains the floats or OptionalVariable()s
+for the sum of squares</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="main_directive.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Documentation of modules in <em>q_calculation</em></a></li>
+<li><a class="reference internal" href="#data-read-module-to-obtain-time-series-data-at-steady-state"><em>data_read</em>: Module to obtain time-series data at steady state</a></li>
+<li><a class="reference internal" href="#data-summary-module-to-create-a-human-readable-summary-from-time-series-data"><em>data_summary</em>: Module to create a human-readable summary from time-series data</a></li>
+<li><a class="reference internal" href="#misc-func-module-containing-basic-functions-to-support-other-modules"><em>misc_func</em>: Module containing basic functions to support other modules</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="theory.html"
+                        title="previous chapter">Theory behind q_calcualtion</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/doc_module.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Howard Cheung.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.2</a>
+      
+      |
+      <a href="_sources/doc_module.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>
