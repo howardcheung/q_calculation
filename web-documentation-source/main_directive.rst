@@ -9,7 +9,7 @@ Sections:
    :maxdepth: 2
 
    Welcome to q_calculation! <index>
-   Theory behind q_calcualtion <theory>
+   Procedures in q_calculation <theory>
    Documentation of modules <doc_module>
 
 Indices and tables
