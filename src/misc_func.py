@@ -28,7 +28,7 @@ class OptionalVariable:
             indicates if the variable contains a valid object in var
 
         _var: anything
-            if _exist is true, it should have a valid variable, no
+            if exist is true, it should have a valid variable, no
             default if exist is false. No default.
 
         _e: Exception
@@ -42,7 +42,7 @@ class OptionalVariable:
 
     def __bool__(self):
         """
-            Check if the var is defined. If it is, returns True.
+            Check if the var is defined
         """
         return self._exist
 
@@ -50,6 +50,8 @@ class OptionalVariable:
         """
             Initialize and set variables var and type
 
+            Inputs:
+            ===========
             var: anything
                 variable to be set to var
         """
@@ -89,6 +91,8 @@ class OptionalVariable:
         """
             Set error value for unsuccessful assignment
 
+            Inputs:
+            ===========
             ee: Exception
                 Exception to be set to var
         """
@@ -114,6 +118,8 @@ class OptionalVariable:
             expected. Also use the function check to check if
             var is defined.
 
+            Inputs:
+            ===========
             type_expect: type
                 type of variable expected in self._var
 
@@ -146,11 +152,18 @@ def details_in_dataframe(df):
     """
         This class inherits the pandas DataFrame
         structure with new attributes related to the 
-        testing conditions not listed in the DataFrame.
-        Returns the DataFrame with the new attribute 'details'.
+        testing conditions not listed in the DataFrame
 
+        Inputs:
+        ===========
         df: pandas Dataframe
             pandas Dataframe with test data
+
+        Outputs
+        ===========
+        df: pandas Dataframe
+            pandas Dataframe with test data and new
+            attribute details that is an empty dictionary
     """
     
     df.__setattr__('details', {})
@@ -160,17 +173,24 @@ def details_in_dataframe(df):
 def abs_slope(time_series, data_series):
     """
         This function calculates the average rate of change
-        of the data in the variable data_series per minute.
-        Returns the average rate of change of data in data_series
-        per minute as OptionalVariable. If the length of
-        data_series and time_series is not the same, it returns False.
+        of the data in the variable data_series per minute
 
+        Inputs:
+        ===========
         time_series: list or numpy array
             a list of timestamps showing when the data
             in data_series are collected in seconds
 
         data_series:  list or numpy array
             a list of data collected
+
+        Outputs:
+        ===========
+        slope: misc_func.OptionalVariable
+            average rate of change of data in data_series
+            per minute. If the length of data_series and
+            time_series is not the same, it is returned as
+            False.
 
     """
 
@@ -196,19 +216,25 @@ def abs_slope(time_series, data_series):
 def rel_slope(time_series, data_series):
     """
         This function calculates the average rate of change
-        of the data in the variable data_series per minute.
-        Returns a misc_func.OptionalVariable with average
-        rate of change of data in data_series per minute relative
-        to the mean value of data in data_series. If the length
-        of data_series and time_series is not the same, it returns
-        False.
+        of the data in the variable data_series per minute
 
+        Inputs:
+        ===========
         time_series: list or numpy array
             a list of timestamps showing when the data
             in data_series are collected in seconds
 
         data_series:  list or numpy array
             a list of data collected
+
+        Outputs:
+        ===========
+        rel_slope: misc_func.OptionalVariable
+            average rate of change of data in data_series
+            per minute relative to the mean value of data in
+            data_series. If the length of data_series and
+            time_series is not the same, it is returned as
+            False.
     """
 
     rel_slope = OptionalVariable()
@@ -229,12 +255,18 @@ def rel_slope(time_series, data_series):
 def sum_of_squares(values):
     """
         This function calculates the sum of squares of multiple
-        entries in values. Returns an OptionalVariable containing
-        the sum of squares.
+        entries in values
 
+        Inputs:
+        ===========
         values: list or numpy array
-            contains the floats or OptionalVariable()s
+            contains the floats or OptionaVariable()s
             for the sum of squares
+
+        Outputs:
+        ===========
+        ssq: OptionalVariable()
+            sum of square value
     """
 
     ssq = OptionalVariable()
@@ -249,11 +281,17 @@ def sum_of_squares(values):
 def sqrt_sum_of_squares(values):
     """
         This function calculates the square root of the sum of squares
-        from multiple entries in values. Returns an OptionalVariable
-        containing the square root of the sum of squares.
+        from multiple entries in values
 
+        Inputs:
+        ===========
         values: list or numpy array
             contains the values in the sum of squares
+
+        Outputs:
+        ===========
+        ssq: OptionalVariable()
+            sum of square value
     """
 
     ssq = OptionalVariable()
@@ -283,12 +321,18 @@ def getOptionalVariable(value):
 
 def r2k(temp_R):
     """
-        This function converts temperature from degree Rankine to Kelvin.
-        Returns a float of the temperature in K.
+        This function converts temperature from degree Rankine to Kelvin
 
+        Inputs:
+        ===========
         temp_F: float or numpy array
             temperature or temperature numpy array in
             degree Rankine
+
+        Outputs:
+        ===========
+        temp_K: float or numpy array
+            temperature or temperature numpy array in Kelvin
     """
 
     return temp_R*5.0/9.0
@@ -297,11 +341,19 @@ def r2k(temp_R):
 def f2c(temp_F):
     """
         This function converts temperature from degree Fahrenheit
-        to degree centigrade. Returns a float of the temperature in C.
+        to degree centigrade
 
+        Inputs:
+        ===========
         temp_F: float or numpy array
             temperature or temperature numpy array in
             degree Fahrenheit
+
+        Outputs:
+        ===========
+        temp_C: float or numpy array
+            temperature or temperature numpy array in
+            degree centigrade
     """
 
     return r2k(temp_F-32.0)
@@ -310,11 +362,19 @@ def f2c(temp_F):
 def c2k(temp_C):
     """
         This function converts temperature from degree centigrade
-        to Kelvin. Returns a float of the temperature in K.
+        to Kelvin
 
+        Inputs:
+        ===========
         temp_C: float or numpy array
             temperature or temperature numpy array in
             degree centigrade
+
+        Outputs:
+        ===========
+        temp_K: float or numpy array
+            temperature or temperature numpy array in
+            Kelvin
     """
 
     return temp_C+k2c_convert
@@ -323,11 +383,19 @@ def c2k(temp_C):
 def k2c(temp_K):
     """
         This function converts temperature from degree centigrade
-        to Kelvin. Returns a float of the temperature in K.
+        to Kelvin
 
+        Inputs:
+        ===========
         temp_K: float or numpy array
             temperature or temperature numpy array in
             Kelvin
+
+        Outputs:
+        ===========
+        temp_C: float or numpy array
+            temperature or temperature numpy array in
+            degree centigrade
     """
 
     return temp_K-k2c_convert
@@ -336,11 +404,17 @@ def k2c(temp_K):
 def gpm2m3s(gpm):
     """
         This function converts volumetric flow from
-        gallons per minute to m3/s. Returns a float
-        of the temperature in m3/s.
+        gpm to m3/s
 
+        Inputs:
+        ===========
         gpm: float or numpy array
             flow rate in gpm
+
+        Outputs:
+        ===========
+        m3s: float or numpy array
+            flow rate in m3/s
     """
 
     return gpm*gpm2m3s_convert

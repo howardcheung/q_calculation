@@ -1,3 +1,20 @@
 
-Theory behind q_calcualtion
+Procedure behind q_calculation
 =========================================
+
+There are two main procedures in *q_calculation*: filtering for quasi-steady state data and calculation for heat exchanger performance. During the calculation of the performance of heat exchangers, there are two steps that can be done differently depending on your assumptions: statistical sampling and thermodynamic analysis.
+
+Filtering for quasi-steady state data
+=========================================
+After conduting an experiment, a file which includes data from both steady state and non-steady operation is collected. If the data file is collected from experiments in field operation, there may be multiple periods with different steady state operation conitions in one single file. Hence it is important to identify the steady state operation period in the data files, and extract those periods for further analysis.
+
+Steady state operation of heat exchangers theorectically means operation with constant temperature, pressure and mass flow rate of medium, but this is impossible to be observed in reality because of environmental noise, periodic changes of medium mass flow rate and properties at the heat exchanger inlets and uncertainty in the measurement devices. Hence only quasi-steady state operation period can be identified from experiments, and data collected from these periods will be analyzed as if the heat exchanger is operating at perfect steady stae.
+
+The main characteristic of a quasi-steady state operation period is that the rates of changes of medium properties and mass flow rate become insignificant for a certain period of time. To identify operation period that this happens, the average rate of changes of medium properties such as temperature and mass flow rate for a period of time can be calculated as shown in Eqn. (:eq:`ss_cal`).
+ 
+.. math:: \text{rated of change of }x = \frac{var(\vec{x}, \vec{t})}{var(\vec{t}, \vec{t})}
+:label: ss_cal
+
+This equation calculates the slope of a linear equation built by regressing measurement x against time t, and can be interpreted as the rate of change of measurement x within a certain period of time. If the rates of changes of multiple observation within the same period of time are small comparing some user-defined thresholds, the period can be considered as a quasi-steady state operation period. If the therholds are relative to the magnitude of measurement such as 0.1%/minute, the rates of changes can be normalized by the mean of measurement in the same period before comparing to the threshold. This is used when measurement of mass flow rates is used to filter for quasi-steady state data. After getting a quasi-steady steady state operation period, to avoid getting another period with similar operation, the data collected for a certain period of time after the quasi-steady operation period should be skipped before checking for another quasi-steady state operation period.
+
+In this project, the unit of the rates of changes of temperature measurement are configured to be K/minute, while the unit of the rates of changes of volume flow rate are set to 
