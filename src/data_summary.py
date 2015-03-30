@@ -590,8 +590,8 @@ def cal_mdotdeltah_per_time(
                 mdot=df[mdot_col_name],
                 mdot_uncer=df[mdot_col_name+uncer_str_end],
             )
-        df[new_col_name][ind] = copy.deepcopy(q)
-        df[new_col_name+uncer_str_end][ind] = copy.deepcopy(q_uncer)
+        df.loc[ind, new_col_name] = copy.deepcopy(q)
+        df.loc[ind, new_col_name+uncer_str_end] = copy.deepcopy(q_uncer)
 
     # return values
     df.details['q_'+hx_name+'_mean_obs'] = q.get()
