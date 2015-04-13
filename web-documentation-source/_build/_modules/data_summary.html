@@ -1,0 +1,868 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>data_summary &mdash; Data_analysis 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Data_analysis 0.1 documentation" href="../main_directive.html" />
+    <link rel="up" title="Module code" href="index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../main_directive.html">Data_analysis 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for data_summary</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/python</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This file contains scripts from machine readable data to human-friendly</span>
+<span class="sd">    summaries from the water-side measurement of a heat exchanger</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">sqrt</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pdb</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">t</span>
+<span class="kn">from</span> <span class="nn">statistics</span> <span class="kn">import</span> <span class="n">stdev</span>
+
+<span class="kn">from</span> <span class="nn">CoolProp.CoolProp</span> <span class="kn">import</span> <span class="n">PropsSI</span>
+
+<span class="kn">import</span> <span class="nn">misc_func</span> <span class="kn">as</span> <span class="nn">misc</span>
+
+<span class="n">time_col_name</span> <span class="o">=</span> <span class="s">&#39;time_col&#39;</span>
+<span class="n">uncer_str_end</span> <span class="o">=</span> <span class="s">&#39;_uncer&#39;</span>
+<span class="n">mean_str_end</span> <span class="o">=</span> <span class="s">&#39;_mean&#39;</span>
+<span class="n">dev_str_end</span> <span class="o">=</span> <span class="s">&#39;_dev&#39;</span>
+<span class="n">env_str_end</span> <span class="o">=</span> <span class="s">&#39;_env&#39;</span>
+<span class="n">prod_str</span> <span class="o">=</span> <span class="s">&#39;mdotdeltah&#39;</span>
+
+
+<div class="viewcode-block" id="append_uncer_to_df"><a class="viewcode-back" href="../doc_module.html#data_summary.append_uncer_to_df">[docs]</a><span class="k">def</span> <span class="nf">append_uncer_to_df</span><span class="p">(</span>
+    <span class="n">df_option</span><span class="p">,</span> <span class="n">mea_col_name</span><span class="p">,</span> <span class="n">abs_uncer</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">rel_uncer</span><span class="o">=</span><span class="mf">0.0</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function appends uncertainty to the data in</span>
+<span class="sd">        the DataFrame to df_option</span>
+
+<span class="sd">        Inputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file.</span>
+
+<span class="sd">        mea_col_name: string</span>
+<span class="sd">            column name containing the data which uncertainty</span>
+<span class="sd">            is going to be appended</span>
+
+<span class="sd">        abs_uncer: float</span>
+<span class="sd">            uncertainty from manufacturer of device measured in</span>
+<span class="sd">            the same unit as the data in mea_col_name. Default 0.0.</span>
+
+<span class="sd">        rel_uncer: float</span>
+<span class="sd">            uncertainty from manufacturer of device measured as</span>
+<span class="sd">            a ratio to the measurement in mea_col_name. Default 0.0.</span>
+
+<span class="sd">        Outputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by reading</span>
+<span class="sd">            a raw csv from Comstock data file. Its DataFrame</span>
+<span class="sd">            contains an extra column with name (mea_col_name+&#39;_uncer&#39;)</span>
+<span class="sd">            for uncertainty values in the same unit as the data</span>
+<span class="sd">            in mea_col_name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check inputs</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">mea_col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s">&quot;DataFrame to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;does not have column &quot;</span><span class="o">+</span><span class="n">mea_col_name</span><span class="o">+</span><span class="s">&quot;.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">abs_uncer</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s">&quot;DataFrame to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;has a negative absolute uncertainty.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">rel_uncer</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">rel_uncer</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s">&quot;DataFrame to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;has an inappropriate relative uncertainty.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c"># create new column</span>
+    <span class="n">new_col_name</span> <span class="o">=</span> <span class="n">mea_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">new_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">misc</span><span class="o">.</span><span class="n">sqrt_sum_of_squares</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">abs_uncer</span><span class="p">,</span> <span class="n">rel_uncer</span><span class="o">*</span><span class="n">df</span><span class="p">[</span><span class="n">mea_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">]]</span>
+        <span class="p">)</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span>
+    <span class="p">]</span>
+
+    <span class="c"># return df_option</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="data_mean_cal"><a class="viewcode-back" href="../doc_module.html#data_summary.data_mean_cal">[docs]</a><span class="k">def</span> <span class="nf">data_mean_cal</span><span class="p">(</span><span class="n">df_option</span><span class="p">,</span> <span class="n">col_names</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.95</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function calculates the mean of data stored in</span>
+<span class="sd">        column col_names and pass the results (mean and uncertainty)</span>
+<span class="sd">        to the &#39;details&#39; attribute in the DataFrame</span>
+
+<span class="sd">        Inputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file.</span>
+
+<span class="sd">        col_names: list</span>
+<span class="sd">            list of strings for the names of the columns to</span>
+<span class="sd">            be summarized with their mean and uncertainty of</span>
+<span class="sd">            the mean</span>
+
+<span class="sd">        alpha: float</span>
+<span class="sd">            level of confidence interval you want in the uncertainty</span>
+<span class="sd">            of the mean. Default 0.95</span>
+
+<span class="sd">        Outputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by reading</span>
+<span class="sd">            a raw csv from Comstock data file. The &#39;details&#39;</span>
+<span class="sd">            attribute contain extra information that summarizes</span>
+<span class="sd">            the data point with the mean and uncertainty of</span>
+<span class="sd">            the mean of the data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check inputs</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">col_names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s">&quot;DataFrame to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() &quot;</span> <span class="o">+</span>
+                <span class="s">&quot;does not have column &quot;</span><span class="o">+</span><span class="n">col_name</span><span class="o">+</span><span class="s">&quot;.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">col_name</span><span class="o">+</span><span class="n">uncer_str_end</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="c"># make one column with zero uncertainty</span>
+            <span class="n">df_option</span> <span class="o">=</span> <span class="n">append_uncer_to_df</span><span class="p">(</span><span class="n">df_option</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s">&#39;details&#39;</span><span class="p">):</span>
+        <span class="c"># make the details attribute if it does not exist</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">details_in_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+    <span class="c"># calculate the summary values</span>
+    <span class="n">len_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">col_names</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="c"># set the uncertainty to be unavailable if it cannot be calculated</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="o">+</span><span class="n">dev_str_end</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="o">+</span><span class="n">env_str_end</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">expt_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">sqrt_sum_of_squares</span><span class="p">(</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">expt_uncer</span><span class="p">:</span>
+            <span class="n">expt_uncer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">expt_uncer</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">/</span><span class="n">len_df</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="o">+</span><span class="n">dev_str_end</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">expt_uncer</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">env_uncer</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">*</span><span class="n">t</span><span class="o">.</span><span class="n">interval</span><span class="p">(</span>
+                <span class="n">alpha</span><span class="p">,</span> <span class="n">len_df</span><span class="o">-</span><span class="mi">1</span>
+            <span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">len_df</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="o">+</span><span class="n">env_str_end</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">env_uncer</span>
+            <span class="n">uncer_optionalvar</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">sqrt_sum_of_squares</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">expt_uncer</span><span class="p">,</span> <span class="n">env_uncer</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">uncer_optionalvar</span><span class="p">:</span>
+                <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">]</span> <span class="o">=</span> \
+                    <span class="n">uncer_optionalvar</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+    <span class="c"># return values</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="cal_mdot"><a class="viewcode-back" href="../doc_module.html#data_summary.cal_mdot">[docs]</a><span class="k">def</span> <span class="nf">cal_mdot</span><span class="p">(</span><span class="n">vdot</span><span class="p">,</span> <span class="n">tvdot</span><span class="p">,</span> <span class="n">vdot_uncer</span><span class="p">,</span> <span class="n">tvdot_uncer</span><span class="p">,</span> <span class="n">medium</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function calculates the mass flow rate</span>
+<span class="sd">        based on volumetric flow rate and temperature</span>
+<span class="sd">        measured at the flow rate station</span>
+
+<span class="sd">        Inputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        vdot: float</span>
+<span class="sd">            volumetric flow rate in m3/s.</span>
+
+<span class="sd">        tvdot: float</span>
+<span class="sd">            temperature measurement in K at flow rate measurement</span>
+<span class="sd">            station.</span>
+
+<span class="sd">        vdot_uncer: float</span>
+<span class="sd">            uncertainty of volumetric flow rate in m3/s.</span>
+
+<span class="sd">        tvdot_uncer: float</span>
+<span class="sd">            temperature measurement in K at flow rate measurement</span>
+<span class="sd">            station.</span>
+
+<span class="sd">        medium: string</span>
+<span class="sd">            name of medium in the flow</span>
+
+<span class="sd">        Outputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        mdot: OptionalVariable()</span>
+<span class="sd">            contains mass flow rate in kg/s</span>
+
+<span class="sd">        mdot_uncer: OptionalVariable()</span>
+<span class="sd">            contains uncertainty of mass flow rate in kg/s</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># change all inputs to ordinary variables</span>
+    <span class="c"># and test if they have errors</span>
+    <span class="n">vdot</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">vdot</span><span class="p">)</span>
+    <span class="n">tvdot</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">tvdot</span><span class="p">)</span>
+    <span class="n">vdot_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">vdot_uncer</span><span class="p">)</span>
+    <span class="n">tvdot_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">tvdot_uncer</span><span class="p">)</span>
+
+    <span class="c"># prepare calculation. If there is an error</span>
+    <span class="c"># set these outputs with the errors and return them</span>
+    <span class="n">mdot</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+    <span class="n">mdot_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+
+    <span class="c"># set uncertainty values of the EOS of water according to</span>
+    <span class="c"># Wagner et al. 2002</span>
+    <span class="n">rel_uncer_rho_eos</span> <span class="o">=</span> <span class="mf">0.02</span><span class="o">/</span><span class="mf">100.0</span>  <span class="c"># maximum</span>
+    <span class="c"># add for other medium later</span>
+
+    <span class="c"># start calculation</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">PropsSI</span><span class="p">(</span><span class="s">&#39;D&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="n">tvdot</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">medium</span><span class="p">)</span>
+        <span class="n">rho_uncer_expt</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span>
+            <span class="n">PropsSI</span><span class="p">(</span><span class="s">&#39;D&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="n">tvdot</span><span class="o">*</span><span class="mf">1.001</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">medium</span><span class="p">)</span><span class="o">-</span><span class="n">rho</span>
+        <span class="p">)</span><span class="o">/</span><span class="n">tvdot</span><span class="o">/</span><span class="mf">0.001</span><span class="o">*</span><span class="n">tvdot_uncer</span>
+        <span class="n">rho_uncer_eos</span> <span class="o">=</span> <span class="n">rho</span><span class="o">*</span><span class="n">rel_uncer_rho_eos</span>
+        <span class="n">mdot</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">rho</span><span class="o">*</span><span class="n">vdot</span><span class="p">)</span>
+        <span class="n">mdot_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">sqrt_sum_of_squares</span><span class="p">([</span>
+            <span class="n">rho_uncer_eos</span><span class="o">*</span><span class="n">vdot</span><span class="p">,</span> <span class="n">rho</span><span class="o">*</span><span class="n">vdot_uncer</span><span class="p">,</span> <span class="n">rho_uncer_expt</span><span class="o">*</span><span class="n">vdot</span>
+        <span class="p">])</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">uncer_temp</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+        <span class="n">uncer_temp</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s">&#39;nan&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mdot</span><span class="p">:</span>
+            <span class="n">mdot</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">uncer_temp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mdot_uncer</span><span class="p">:</span>
+            <span class="n">mdot_uncer</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">uncer_temp</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mdot</span><span class="p">:</span>
+            <span class="n">mdot</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mdot_uncer</span><span class="p">:</span>
+            <span class="n">mdot_uncer</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="c"># return the values</span>
+    <span class="k">return</span> <span class="n">mdot</span><span class="p">,</span> <span class="n">mdot_uncer</span>
+
+</div>
+<div class="viewcode-block" id="cal_mdotdeltah_water"><a class="viewcode-back" href="../doc_module.html#data_summary.cal_mdotdeltah_water">[docs]</a><span class="k">def</span> <span class="nf">cal_mdotdeltah_water</span><span class="p">(</span>
+    <span class="n">vdot</span><span class="p">,</span> <span class="n">tvdot</span><span class="p">,</span> <span class="n">tout</span><span class="p">,</span> <span class="n">tin</span><span class="p">,</span> <span class="n">vdot_uncer</span><span class="p">,</span> <span class="n">tvdot_uncer</span><span class="p">,</span>
+    <span class="n">tout_uncer</span><span class="p">,</span> <span class="n">tin_uncer</span><span class="p">,</span> <span class="n">mdot</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s">&#39;-inf&#39;</span><span class="p">),</span> <span class="n">mdot_uncer</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s">&#39;-inf&#39;</span><span class="p">)</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function calculates mdot*(hout-hin) and</span>
+<span class="sd">        the uncertainty propagated from the inputs for</span>
+<span class="sd">        water flow</span>
+
+<span class="sd">        Inputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        vdot: float</span>
+<span class="sd">            volumetric flow rate in m3/s. If you are measuring</span>
+<span class="sd">            mass flow rate in kg/s, set it to float(&#39;-inf&#39;) and enter</span>
+<span class="sd">            mass flow rate at variable mdot.</span>
+
+<span class="sd">        tvdot: float</span>
+<span class="sd">            temperature measurement in K at flow rate measurement</span>
+<span class="sd">            station. If you are measuring</span>
+<span class="sd">            mass flow rate in kg/s, set it to 0.0.</span>
+
+<span class="sd">        tout: float</span>
+<span class="sd">            temperature measurement of water at outlet in K</span>
+
+<span class="sd">        tin: float</span>
+<span class="sd">            temperature measurement of water at inlet in K</span>
+
+<span class="sd">        vdot_uncer: float</span>
+<span class="sd">            uncertainty of volumetric flow rate in m3/s. If you</span>
+<span class="sd">            are measuring mass flow rate in kg/s, set it to float(&#39;-inf&#39;)</span>
+<span class="sd">            and enter the uncertainty of mass flow rate at</span>
+<span class="sd">            variable mdot_uncer.</span>
+
+<span class="sd">        tvdot_uncer: float</span>
+<span class="sd">            temperature measurement in K at flow rate measurement</span>
+<span class="sd">            station. If you are measuring mass flow rate in kg/s,</span>
+<span class="sd">            set it to zero.</span>
+
+<span class="sd">        tout_uncer: float</span>
+<span class="sd">            uncertainty of temperature measurement of water at outlet in K</span>
+
+<span class="sd">        tin: float</span>
+<span class="sd">            uncertainty of temperature measurement of water at inlet in K</span>
+
+<span class="sd">        mdot: float</span>
+<span class="sd">            mass flow rate in kg/s. If you measure volumetric</span>
+<span class="sd">            float rate, set it to float(&#39;-inf&#39;). Default float(&#39;-inf&#39;).</span>
+
+<span class="sd">        mdot_uncer: float</span>
+<span class="sd">            uncertainty of mass flow rate in kg/s. If you measure volumetric</span>
+<span class="sd">            float rate, set it to float(&#39;-inf&#39;). Default float(&#39;-inf&#39;).</span>
+
+<span class="sd">        Outputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        q: OptionalVariable()</span>
+<span class="sd">            mdot*(hout-hin) in W</span>
+
+<span class="sd">        q_uncer: OptionalVariable()</span>
+<span class="sd">            uncertainty of mdot*(hout-hin) from its inputs in W</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># change all inputs to ordinary variables</span>
+    <span class="c"># and test if they have errors</span>
+    <span class="n">vdot</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">vdot</span><span class="p">)</span>
+    <span class="n">tvdot</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">tvdot</span><span class="p">)</span>
+    <span class="n">tout</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">tout</span><span class="p">)</span>
+    <span class="n">tin</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">tin</span><span class="p">)</span>
+    <span class="n">vdot_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">vdot_uncer</span><span class="p">)</span>
+    <span class="n">tvdot_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">tvdot_uncer</span><span class="p">)</span>
+    <span class="n">tout_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">tout_uncer</span><span class="p">)</span>
+    <span class="n">tin_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">tin_uncer</span><span class="p">)</span>
+    <span class="n">mdot</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">mdot</span><span class="p">)</span>
+    <span class="n">mdot_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">getOptionalVariable</span><span class="p">(</span><span class="n">mdot_uncer</span><span class="p">)</span>
+
+    <span class="c"># prepare calculation. If there is an error</span>
+    <span class="c"># set these outputs with the errors and return them</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+    <span class="n">q_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+    <span class="n">medium</span> <span class="o">=</span> <span class="s">&#39;Water&#39;</span>
+
+    <span class="c"># set uncertainty values of the EOS of water according to</span>
+    <span class="c"># Wagner et al. 2002</span>
+    <span class="n">rel_uncer_deltah</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">/</span><span class="mf">100.0</span>  <span class="c"># less than or equal to cp uncertainty</span>
+
+    <span class="c"># start calculation</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># check if calculation of mdot and mdot_uncer is needed</span>
+        <span class="k">if</span> <span class="n">vdot</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">):</span>
+            <span class="n">mdot</span><span class="p">,</span> <span class="n">mdot_uncer</span> <span class="o">=</span> <span class="n">cal_mdot</span><span class="p">(</span>
+                <span class="n">vdot</span><span class="p">,</span> <span class="n">tvdot</span><span class="p">,</span> <span class="n">vdot_uncer</span><span class="p">,</span> <span class="n">tvdot_uncer</span><span class="p">,</span> <span class="n">medium</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">mdot_uncer</span> <span class="ow">and</span> <span class="n">mdot</span><span class="p">):</span>
+                <span class="n">q</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">mdot</span><span class="o">.</span><span class="n">getError</span><span class="p">())</span>
+                <span class="n">q_uncer</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">mdot_uncer</span><span class="o">.</span><span class="n">getError</span><span class="p">())</span>
+                <span class="k">return</span> <span class="n">q</span><span class="p">,</span> <span class="n">q_uncer</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mdot</span> <span class="o">=</span> <span class="n">mdot</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="n">mdot_uncer</span> <span class="o">=</span> <span class="n">mdot_uncer</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+        <span class="c"># get enthalpy differences</span>
+        <span class="n">hout</span> <span class="o">=</span> <span class="n">PropsSI</span><span class="p">(</span><span class="s">&#39;H&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="n">tout</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">medium</span><span class="p">)</span>
+        <span class="n">hin</span> <span class="o">=</span> <span class="n">PropsSI</span><span class="p">(</span><span class="s">&#39;H&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="n">tin</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">medium</span><span class="p">)</span>
+        <span class="n">deltah</span> <span class="o">=</span> <span class="n">hout</span><span class="o">-</span><span class="n">hin</span>
+
+        <span class="c"># calculate q</span>
+        <span class="n">q</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">mdot</span><span class="o">*</span><span class="n">deltah</span><span class="p">)</span>
+
+        <span class="c"># calculate uncertainty of deltah</span>
+        <span class="n">hout_uncer</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span>
+            <span class="n">PropsSI</span><span class="p">(</span><span class="s">&#39;H&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="n">tout</span><span class="o">*</span><span class="mf">1.001</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">medium</span><span class="p">)</span><span class="o">-</span><span class="n">hout</span>
+        <span class="p">)</span><span class="o">/</span><span class="n">tout</span><span class="o">/</span><span class="mf">0.001</span><span class="o">*</span><span class="n">tout_uncer</span>
+        <span class="n">hin_uncer</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span>
+            <span class="n">PropsSI</span><span class="p">(</span><span class="s">&#39;H&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="n">tin</span><span class="o">*</span><span class="mf">1.001</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">medium</span><span class="p">)</span><span class="o">-</span><span class="n">hin</span>
+        <span class="p">)</span><span class="o">/</span><span class="n">tin</span><span class="o">/</span><span class="mf">0.001</span><span class="o">*</span><span class="n">tin_uncer</span>
+        <span class="n">deltah_uncer_eos</span> <span class="o">=</span> <span class="n">rel_uncer_deltah</span><span class="o">*</span><span class="n">deltah</span>
+        <span class="n">deltah_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">sqrt_sum_of_squares</span><span class="p">([</span>
+                <span class="n">hout_uncer</span><span class="p">,</span> <span class="n">hin_uncer</span><span class="p">,</span> <span class="n">deltah_uncer_eos</span>
+        <span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">deltah_uncer</span><span class="p">:</span>
+            <span class="n">q_uncer</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">deltah_uncer</span><span class="o">.</span><span class="n">getError</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">q</span><span class="p">,</span> <span class="n">q_uncer</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">deltah_uncer</span> <span class="o">=</span> <span class="n">deltah_uncer</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="n">q_uncer</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">sqrt_sum_of_squares</span><span class="p">([</span>
+            <span class="n">mdot_uncer</span><span class="o">*</span><span class="n">deltah</span><span class="p">,</span> <span class="n">deltah_uncer</span><span class="o">*</span><span class="n">mdot</span>
+        <span class="p">])</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c"># temperature out of range</span>
+        <span class="n">uncer_temp</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+        <span class="n">uncer_temp</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s">&#39;nan&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">q</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">uncer_temp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">q_uncer</span><span class="p">:</span>
+            <span class="n">q_uncer</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">uncer_temp</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">q</span><span class="p">:</span>
+            <span class="n">q</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">q_uncer</span><span class="p">:</span>
+            <span class="n">q_uncer</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="c"># return the values</span>
+    <span class="k">return</span> <span class="n">q</span><span class="p">,</span> <span class="n">q_uncer</span>
+
+</div>
+<div class="viewcode-block" id="cal_q_from_sample_result"><a class="viewcode-back" href="../doc_module.html#data_summary.cal_q_from_sample_result">[docs]</a><span class="k">def</span> <span class="nf">cal_q_from_sample_result</span><span class="p">(</span>
+    <span class="n">df_option</span><span class="p">,</span> <span class="n">vdot_col_name</span><span class="p">,</span> <span class="n">tvdot_col_name</span><span class="p">,</span> <span class="n">tout_col_name</span><span class="p">,</span>
+    <span class="n">tin_col_name</span><span class="p">,</span> <span class="n">hx_name</span><span class="o">=</span><span class="s">&#39;hx&#39;</span><span class="p">,</span> <span class="n">mdot_col_name</span><span class="o">=</span><span class="s">&#39;&#39;</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function calculates the heat transfer rate and its</span>
+<span class="sd">        uncertainty of a heat exchanger from the mean observations</span>
+<span class="sd">        of properties. It stores the information to the &#39;details&#39;</span>
+<span class="sd">        attribute of the DataFrame.</span>
+
+<span class="sd">        Inputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file with</span>
+<span class="sd">            mean values of observations stroed in the &#39;details&#39;</span>
+<span class="sd">            attribute</span>
+
+<span class="sd">        vdot_col_name: string</span>
+<span class="sd">            column name for volumetric flow rate value in m3/s.</span>
+<span class="sd">            If mass flow rate is measured, set this to empty string and</span>
+<span class="sd">            put the mass flow rate column name to mdot_col_name</span>
+
+<span class="sd">        tvdot_col_name: string</span>
+<span class="sd">            column name for temperature value at flow rate measurement</span>
+<span class="sd">            station in K. Set this to empty string if mass flow rate</span>
+<span class="sd">            is measured</span>
+
+<span class="sd">        tout_col_name: string</span>
+<span class="sd">            column name for temperature value at heat exchanger outlet</span>
+<span class="sd">            station in K</span>
+
+<span class="sd">        tin_col_name: string</span>
+<span class="sd">            column name for temperature value at heat exchanger outlet</span>
+<span class="sd">            station in K</span>
+
+<span class="sd">        hx_name: string</span>
+<span class="sd">            name of heat exchanger. Default &#39;hx&#39;</span>
+
+<span class="sd">        mdot_col_name: string</span>
+<span class="sd">            column name for volumetric flow rate value in kg/s.</span>
+<span class="sd">            Default empty.</span>
+
+<span class="sd">        Outputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by reading</span>
+<span class="sd">            a raw csv from Comstock data file. The &#39;details&#39;</span>
+<span class="sd">            attribute contain extra information that summarizes</span>
+<span class="sd">            the data point with heat transfer rate and its</span>
+<span class="sd">            uncertainty</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check inputs</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="c"># need code to check column names</span>
+
+    <span class="c"># calculate q and q_result</span>
+    <span class="k">if</span> <span class="n">vdot_col_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">q</span><span class="p">,</span> <span class="n">q_uncer</span> <span class="o">=</span> <span class="n">cal_mdotdeltah_water</span><span class="p">(</span>
+            <span class="n">vdot</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">vdot_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="p">],</span>
+            <span class="n">tvdot</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tvdot_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="p">],</span>
+            <span class="n">tout</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tout_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="p">],</span>
+            <span class="n">tin</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tin_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="p">],</span>
+            <span class="n">vdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">vdot_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">],</span>
+            <span class="n">tvdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tvdot_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">],</span>
+            <span class="n">tout_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tout_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">],</span>
+            <span class="n">tin_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tin_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span><span class="p">,</span> <span class="n">q_uncer</span> <span class="o">=</span> <span class="n">cal_mdotdeltah_water</span><span class="p">(</span>
+            <span class="n">vdot</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s">&#39;-inf&#39;</span><span class="p">),</span> <span class="n">tvdot</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s">&#39;-inf&#39;</span><span class="p">),</span>
+            <span class="n">tout</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tout_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="p">],</span>
+            <span class="n">tin</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tin_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="p">],</span>
+            <span class="n">vdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">detailsfloat</span><span class="p">(</span><span class="s">&#39;-inf&#39;</span><span class="p">),</span>
+            <span class="n">tvdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">detailsfloat</span><span class="p">(</span><span class="s">&#39;-inf&#39;</span><span class="p">),</span>
+            <span class="n">tout_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tout_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">],</span>
+            <span class="n">tin_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">tin_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">],</span>
+            <span class="n">mdot</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">mdot_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="p">],</span>
+            <span class="n">mdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">mdot_col_name</span><span class="o">+</span><span class="n">mean_str_end</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="c"># check error</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">q</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">q</span><span class="o">.</span><span class="n">getError</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">q_uncer</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">q_uncer</span><span class="o">.</span><span class="n">getError</span><span class="p">()</span>
+
+    <span class="c"># return values</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;q_&#39;</span><span class="o">+</span><span class="n">hx_name</span><span class="o">+</span><span class="s">&#39;_mean_obs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;q_uncer_&#39;</span><span class="o">+</span><span class="n">hx_name</span><span class="o">+</span><span class="s">&#39;_mean_obs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_uncer</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="cal_mdotdeltah_per_time"><a class="viewcode-back" href="../doc_module.html#data_summary.cal_mdotdeltah_per_time">[docs]</a><span class="k">def</span> <span class="nf">cal_mdotdeltah_per_time</span><span class="p">(</span>
+    <span class="n">df_option</span><span class="p">,</span> <span class="n">vdot_col_name</span><span class="p">,</span> <span class="n">tvdot_col_name</span><span class="p">,</span> <span class="n">tout_col_name</span><span class="p">,</span>
+    <span class="n">tin_col_name</span><span class="p">,</span> <span class="n">hx_name</span><span class="o">=</span><span class="s">&#39;hx&#39;</span><span class="p">,</span> <span class="n">mdot_col_name</span><span class="o">=</span><span class="s">&#39;&#39;</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function calculates the instantaneous mdot*(hout-hin)</span>
+<span class="sd">        at each time stamp and stores it in the DataFrame</span>
+
+<span class="sd">        Inputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file</span>
+
+<span class="sd">        vdot_col_name: string</span>
+<span class="sd">            column name for volumetric flow rate value in m3/s.</span>
+<span class="sd">            If mass flow rate is measured, set this to empty string and</span>
+<span class="sd">            put the mass flow rate column name to mdot_col_name</span>
+
+<span class="sd">        tvdot_col_name: string</span>
+<span class="sd">            column name for temperature value at flow rate measurement</span>
+<span class="sd">            station in K. Set this to empty string if mass flow rate</span>
+<span class="sd">            is measured</span>
+
+<span class="sd">        tout_col_name: string</span>
+<span class="sd">            column name for temperature value at heat exchanger outlet</span>
+<span class="sd">            station in K</span>
+
+<span class="sd">        tin_col_name: string</span>
+<span class="sd">            column name for temperature value at heat exchanger outlet</span>
+<span class="sd">            station in K</span>
+
+<span class="sd">        deltat: float</span>
+<span class="sd">            period of measurement per sample in seconds. If you want to</span>
+<span class="sd">            the mean of instantaneous heat transfer rate, set it to 0.</span>
+<span class="sd">            Default 10.</span>
+
+<span class="sd">        hx_name: string</span>
+<span class="sd">            name of heat exchanger that is under analyzed. Default &#39;hx&#39;</span>
+
+<span class="sd">        mdot_col_name: string</span>
+<span class="sd">            column name for volumetric flow rate value in kg/s.</span>
+<span class="sd">            Default empty.</span>
+
+<span class="sd">        Outputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by reading</span>
+<span class="sd">            a raw csv from Comstock data file. It contains new</span>
+<span class="sd">            columns &#39;mdotdeltah&#39; and &#39;mdotdeltah_uncer&#39; in W</span>
+<span class="sd">            for future calculation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check inputs</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="c"># need code to check column names</span>
+
+    <span class="c"># prepare calculation</span>
+    <span class="n">len_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">new_col_name</span> <span class="o">=</span> <span class="n">prod_str</span><span class="o">+</span><span class="s">&quot;_&quot;</span><span class="o">+</span><span class="n">hx_name</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">new_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">misc</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_df</span><span class="p">)]</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">new_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">misc</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_df</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="c"># calculation starts</span>
+    <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <span class="c"># calculate q and q_result</span>
+        <span class="k">if</span> <span class="n">vdot_col_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">q</span><span class="p">,</span> <span class="n">q_uncer</span> <span class="o">=</span> <span class="n">cal_mdotdeltah_water</span><span class="p">(</span>
+                <span class="n">vdot</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">vdot_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span> <span class="n">tvdot</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tvdot_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">tout</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tout_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span> <span class="n">tin</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tin_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">vdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">vdot_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">tvdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tvdot_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">tout_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tout_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">tin_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tin_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">q</span><span class="p">,</span> <span class="n">q_uncer</span> <span class="o">=</span> <span class="n">cal_mdotdeltah_water</span><span class="p">(</span>
+                <span class="n">vdot</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s">&#39;-inf&#39;</span><span class="p">),</span> <span class="n">tvdot</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s">&#39;-inf&#39;</span><span class="p">),</span>
+                <span class="n">tout</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tout_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span> <span class="n">tin</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tin_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">vdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">vdot_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">tvdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tvdot_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">tout_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tout_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">tin_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">tin_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">],</span>
+                <span class="n">mdot</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">mdot_col_name</span><span class="p">],</span>
+                <span class="n">mdot_uncer</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">mdot_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="n">df</span><span class="p">[</span><span class="n">new_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">[</span><span class="n">new_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">q_uncer</span><span class="p">)</span>
+
+    <span class="c"># return values</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;q_&#39;</span><span class="o">+</span><span class="n">hx_name</span><span class="o">+</span><span class="s">&#39;_mean_obs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;q_uncer_&#39;</span><span class="o">+</span><span class="n">hx_name</span><span class="o">+</span><span class="s">&#39;_mean_obs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_uncer</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="cal_q_from_ind_mea"><a class="viewcode-back" href="../doc_module.html#data_summary.cal_q_from_ind_mea">[docs]</a><span class="k">def</span> <span class="nf">cal_q_from_ind_mea</span><span class="p">(</span>
+    <span class="n">df_option</span><span class="p">,</span> <span class="n">deltat</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">hx_name</span><span class="o">=</span><span class="s">&#39;hx&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.95</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function integrates the mdotdeltah column result</span>
+<span class="sd">        according to the user-defined period per sample. The heat</span>
+<span class="sd">        transfer rates from each sample are averaged to obtain the</span>
+<span class="sd">        mean heat transfer rate.</span>
+
+<span class="sd">        Inputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file</span>
+
+<span class="sd">        deltat: float</span>
+<span class="sd">            period of measurement per sample in seconds. If you want to</span>
+<span class="sd">            the mean of instantaneous heat transfer rate, set it to 0.</span>
+<span class="sd">            Default 10.</span>
+
+<span class="sd">        hx_name: string</span>
+<span class="sd">            name of heat exchanger that is under analyzed. Default &#39;hx&#39;</span>
+
+<span class="sd">        alpha: float</span>
+<span class="sd">            level of confidence interval you want in the uncertainty</span>
+<span class="sd">            of the mean. Default 0.95</span>
+
+<span class="sd">        Outputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by reading</span>
+<span class="sd">            a raw csv from Comstock data file. The &#39;details&#39;</span>
+<span class="sd">            attribute contain extra information that summarizes</span>
+<span class="sd">            the data point with heat transfer rate and its</span>
+<span class="sd">            uncertainty with deltat in its name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check inputs</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">deltat</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s">&quot;deltat to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() is negative.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">data_col_name</span> <span class="o">=</span> <span class="n">prod_str</span><span class="o">+</span><span class="s">&quot;_&quot;</span><span class="o">+</span><span class="n">hx_name</span>
+    <span class="n">uncer_col_name</span> <span class="o">=</span> <span class="n">data_col_name</span><span class="o">+</span><span class="n">uncer_str_end</span>
+    <span class="k">if</span> <span class="n">data_col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+            <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() cannot find column&quot;</span> <span class="o">+</span>
+            <span class="n">data_col_name</span><span class="o">+</span><span class="s">&quot;. Please run cal_mdotdeltah_per_time()&quot;</span> <span class="o">+</span>
+            <span class="s">&quot; to generate the column before using &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;()&quot;</span>
+        <span class="p">)</span>
+    <span class="c"># need code to check column names</span>
+
+    <span class="c"># identify where the integration is needed</span>
+    <span class="n">q_ind</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">q_uncer_ind</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">deltat</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c"># integration by trapezoidal rule required</span>
+        <span class="n">time_str</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span>
+        <span class="n">end_ind</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span>
+        <span class="n">beg_ind</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">acc</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">acc_uncer_sq</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">acc_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">while</span> <span class="n">beg_ind</span> <span class="o">&lt;</span> <span class="n">end_ind</span><span class="p">:</span>
+            <span class="c"># begin integration</span>
+            <span class="n">beg_time</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span>
+            <span class="n">end_time</span> <span class="o">=</span> <span class="n">beg_time</span><span class="o">+</span><span class="n">deltat</span>
+            <span class="n">acc</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">df</span><span class="p">[</span><span class="n">data_col_name</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">beg_ind</span> <span class="o">&lt;</span> <span class="n">end_ind</span><span class="p">:</span>
+                <span class="n">deltaT</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]]</span> <span class="o">-</span>\
+                    <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">deltaT</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span> <span class="o">-</span>\
+                    <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="n">acc</span> <span class="o">=</span> <span class="n">acc</span><span class="o">*</span><span class="n">deltaT</span>
+            <span class="n">acc_uncer_sq</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="mf">0.5</span><span class="o">*</span><span class="n">df</span><span class="p">[</span><span class="n">uncer_col_name</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">*</span><span class="n">deltaT</span>
+            <span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+            <span class="k">while</span> <span class="n">beg_ind</span> <span class="o">&lt;</span> <span class="n">end_ind</span><span class="p">:</span>
+                <span class="n">beg_ind</span> <span class="o">=</span> <span class="n">beg_ind</span><span class="o">+</span><span class="mi">1</span>
+                <span class="k">if</span> <span class="n">beg_ind</span> <span class="o">&lt;</span> <span class="n">end_ind</span> <span class="ow">and</span> \
+                        <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]]</span> <span class="o">&lt;=</span> <span class="n">end_time</span><span class="p">:</span>
+                    <span class="n">deltaT</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]]</span> <span class="o">-</span>\
+                        <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="n">acc</span> <span class="o">=</span> <span class="n">acc</span> <span class="o">+</span>\
+                        <span class="n">df</span><span class="p">[</span><span class="n">data_col_name</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">*</span><span class="n">deltaT</span><span class="o">/</span><span class="mf">2.</span>
+                    <span class="n">acc_uncer_sq</span> <span class="o">=</span> <span class="n">acc_uncer_sq</span><span class="o">+</span><span class="p">(</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">uncer_col_name</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">*</span><span class="n">deltaT</span><span class="o">/</span><span class="mf">2.</span>
+                    <span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">deltaT</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span> <span class="o">-</span>\
+                        <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="n">acc</span> <span class="o">=</span> <span class="n">acc</span> <span class="o">+</span>\
+                        <span class="n">df</span><span class="p">[</span><span class="n">data_col_name</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">*</span><span class="n">deltaT</span><span class="o">/</span><span class="mf">2.</span>
+                    <span class="n">acc_uncer_sq</span> <span class="o">=</span> <span class="n">acc_uncer_sq</span><span class="o">+</span><span class="p">(</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">uncer_col_name</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">*</span><span class="n">deltaT</span><span class="o">/</span><span class="mf">2.</span>
+                    <span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                    <span class="k">break</span>
+
+            <span class="c"># divide the integrated heat transfer by time</span>
+            <span class="n">acc_time</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_str</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">beg_ind</span><span class="p">]]</span><span class="o">-</span><span class="n">beg_time</span>
+            <span class="n">q_ind</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">acc</span><span class="o">/</span><span class="n">acc_time</span><span class="p">)</span>
+            <span class="n">q_uncer_ind</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="n">acc_uncer_sq</span><span class="p">)</span><span class="o">/</span><span class="n">acc_time</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>  <span class="c"># mean of instantaneous heat transfer rate is needed</span>
+        <span class="n">q_ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">data_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">q_uncer_ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">uncer_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="c"># taking the mean values for result</span>
+    <span class="k">if</span> <span class="n">deltat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">time_std_end</span> <span class="o">=</span> <span class="s">&#39;_inst&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">time_std_end</span> <span class="o">=</span> <span class="s">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">deltat</span><span class="p">))</span><span class="o">+</span><span class="s">&#39;s&#39;</span>
+    <span class="n">len_q_ind</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">q_ind</span><span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;q_&#39;</span><span class="o">+</span><span class="n">hx_name</span><span class="o">+</span><span class="s">&#39;_mean&#39;</span><span class="o">+</span><span class="n">time_std_end</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">q_ind</span><span class="p">)</span><span class="o">/</span><span class="n">len_q_ind</span>
+
+    <span class="c"># getting the variation of samples as environmental noise effect</span>
+    <span class="n">zero_order_sq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([(</span><span class="n">value</span><span class="o">/</span><span class="n">len_q_ind</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">q_uncer_ind</span><span class="p">])</span>
+    <span class="n">first_order_sq</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">stdev</span><span class="p">(</span><span class="n">q_ind</span><span class="p">)</span><span class="o">*</span><span class="n">t</span><span class="o">.</span><span class="n">interval</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">len_q_ind</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">len_q_ind</span>
+    <span class="p">)</span><span class="o">**</span><span class="mi">2</span>  <span class="c"># give NaN for zero degree of freedom</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;q_uncer_&#39;</span><span class="o">+</span><span class="n">hx_name</span><span class="o">+</span><span class="s">&#39;_mean&#39;</span><span class="o">+</span><span class="n">time_std_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span>
+        <span class="n">zero_order_sq</span><span class="o">+</span><span class="n">first_order_sq</span>
+    <span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;q_uncer_&#39;</span><span class="o">+</span><span class="n">hx_name</span><span class="o">+</span><span class="s">&#39;_mean&#39;</span><span class="o">+</span><span class="n">time_std_end</span><span class="o">+</span><span class="s">&#39;_zero&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span>
+        <span class="n">zero_order_sq</span>
+    <span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;q_uncer_&#39;</span><span class="o">+</span><span class="n">hx_name</span><span class="o">+</span><span class="s">&#39;_mean&#39;</span><span class="o">+</span><span class="n">time_std_end</span><span class="o">+</span><span class="s">&#39;_first&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span>
+        <span class="n">first_order_sq</span>
+    <span class="p">)</span>
+
+    <span class="c"># return values</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="print_data"><a class="viewcode-back" href="../doc_module.html#data_summary.print_data">[docs]</a><span class="k">def</span> <span class="nf">print_data</span><span class="p">(</span><span class="n">ss_df_options</span><span class="p">,</span> <span class="n">csv_path</span><span class="p">,</span> <span class="n">detail_names</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Print the data in ss_df_options details into a summary</span>
+<span class="sd">        file.</span>
+
+<span class="sd">        Inputs:</span>
+<span class="sd">        ===========</span>
+<span class="sd">        ss_df_options: list</span>
+<span class="sd">            list of misc_func.OptionalVariable() that contains</span>
+<span class="sd">            a pandas DataFrame with &#39;details&#39; attribute</span>
+
+<span class="sd">        csv_path: string</span>
+<span class="sd">            path and name of the file with the csv extension.</span>
+
+<span class="sd">        detail_names: list</span>
+<span class="sd">            the key names in the &#39;details&#39; attribute in the</span>
+<span class="sd">            pandas DataFrams in ss_df_options that you want</span>
+<span class="sd">            to print in the file. They should be in the order</span>
+<span class="sd">            of your output</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># write file</span>
+    <span class="n">ofile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">csv_path</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">ofile_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">ofile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+    <span class="c"># write header</span>
+    <span class="n">ofile_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">detail_names</span><span class="p">)</span>
+    <span class="c"># write detailed info</span>
+    <span class="k">for</span> <span class="n">ss_df_option</span> <span class="ow">in</span> <span class="n">ss_df_options</span><span class="p">:</span>
+        <span class="n">row_infos</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">ss_df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">detail_names</span>
+        <span class="p">]</span>
+        <span class="n">ofile_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row_infos</span><span class="p">)</span>
+    <span class="c"># close file</span>
+    <span class="n">ofile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Howard Cheung.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.2</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

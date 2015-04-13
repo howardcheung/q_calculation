@@ -1,0 +1,627 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>data_read &mdash; Data_analysis 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Data_analysis 0.1 documentation" href="../main_directive.html" />
+    <link rel="up" title="Module code" href="index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../main_directive.html">Data_analysis 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for data_read</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/python</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This file contains scripts to read and process the data</span>
+<span class="sd">    so as to output pandas dataframes with each dataframe</span>
+<span class="sd">    representing a steady state time series</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pdb</span>
+
+<span class="kn">import</span> <span class="nn">misc_func</span>
+
+<span class="n">time_col_name</span> <span class="o">=</span> <span class="s">&#39;time_col&#39;</span>
+<span class="n">beg_ind_col_name</span> <span class="o">=</span> <span class="s">&#39;beg_index&#39;</span>
+<span class="n">ss_time_col_name</span> <span class="o">=</span> <span class="s">&#39;ss_time&#39;</span>
+
+
+<div class="viewcode-block" id="read_csv_option"><a class="viewcode-back" href="../doc_module.html#data_read.read_csv_option">[docs]</a><span class="k">def</span> <span class="nf">read_csv_option</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;        </span>
+<span class="sd">        Read the csv file to create a dataframe. If the csv</span>
+<span class="sd">        file does not exist, include it in the error message.</span>
+<span class="sd">        Return OptionalVariable() with error messages in it.</span>
+
+<span class="sd">        filepath: string</span>
+<span class="sd">            a string showing the path or filename</span>
+<span class="sd">            from the current working directory</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">df_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c"># use the new Dataframe defined in misc_func</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">details_in_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+            <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+            <span class="n">df_option</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">misc_func</span><span class="o">.</span><span class="n">IncorrectFileError</span><span class="p">(</span>
+                <span class="s">&quot;read_csv_option() is not &quot;</span> <span class="o">+</span>
+                <span class="s">&quot;reading a correct csv at &quot;</span><span class="o">+</span><span class="n">filepath</span>
+            <span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">df_option</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">FileExistsError</span><span class="p">(</span>
+            <span class="s">&quot;read_csv_option() cannot find a file in &quot;</span><span class="o">+</span><span class="n">filepath</span>
+        <span class="p">))</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="unit_convert"><a class="viewcode-back" href="../doc_module.html#data_read.unit_convert">[docs]</a><span class="k">def</span> <span class="nf">unit_convert</span><span class="p">(</span>
+        <span class="n">df_option</span><span class="p">,</span> <span class="n">col_names</span><span class="o">=</span><span class="p">[],</span> <span class="n">init_unit</span><span class="o">=</span><span class="s">&#39;F&#39;</span><span class="p">,</span> <span class="n">final_unit</span><span class="o">=</span><span class="s">&#39;K&#39;</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function converts the temperature</span>
+<span class="sd">        readings with T in the beginning from degree Fahrenheit</span>
+<span class="sd">        to Kelvin and put them back to the Dataframe. Return</span>
+<span class="sd">        a misc_func.OptionalVariable() variable contains a</span>
+<span class="sd">        pandas DataFrame with multiple columns with their names</span>
+<span class="sd">        ended with the new unit.</span>
+
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file</span>
+
+<span class="sd">        col_names: list of strings</span>
+<span class="sd">            column names with temperature readings that</span>
+<span class="sd">            you would like to do the conversion</span>
+
+<span class="sd">        init_unit: string</span>
+<span class="sd">            unit of the original values.</span>
+<span class="sd">            &#39;F&#39; stands for degree Fahrenheit</span>
+<span class="sd">            &#39;C&#39; stands for degree centigrade. Defaulted &#39;F&#39;</span>
+<span class="sd">            &#39;GPM&#39; stands for gallons per minute</span>
+
+<span class="sd">        final_unit: string</span>
+<span class="sd">            unit of the original values. &#39;K&#39; stands for</span>
+<span class="sd">            Kelvin and &#39;C&#39; stands for degree</span>
+<span class="sd">            centigrade. Defaulted &#39;K&#39;</span>
+<span class="sd">            &#39;m3s&#39; stands for m3/s</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># define function to do unit conversion for each</span>
+    <span class="c"># column</span>
+    <span class="c"># need to add error checking for units not for</span>
+    <span class="c"># same type of measurement</span>
+    <span class="k">def</span> <span class="nf">unit_conversion</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+        <span class="n">final_values</span> <span class="o">=</span> <span class="n">values</span>
+        <span class="c"># for temperature</span>
+        <span class="k">if</span> <span class="n">init_unit</span> <span class="ow">is</span> <span class="s">&#39;F&#39;</span><span class="p">:</span>
+            <span class="n">final_values</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">f2c</span><span class="p">(</span><span class="n">final_values</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">final_unit</span> <span class="ow">is</span> <span class="s">&#39;K&#39;</span><span class="p">:</span>
+            <span class="n">final_values</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">c2k</span><span class="p">(</span><span class="n">final_values</span><span class="p">)</span>
+        <span class="c"># for volumetric flow</span>
+        <span class="k">if</span> <span class="n">init_unit</span> <span class="ow">is</span> <span class="s">&#39;GPM&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">final_unit</span> <span class="ow">is</span> <span class="s">&#39;m3s&#39;</span><span class="p">:</span>
+                <span class="n">final_values</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">gpm2m3s</span><span class="p">(</span><span class="n">final_values</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">final_values</span>
+
+    <span class="c"># check if the dataframe is defined</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c"># convert for each column</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">col_names</span><span class="p">:</span>
+        <span class="n">new_col_name</span> <span class="o">=</span> <span class="n">col_name</span><span class="o">+</span><span class="s">&quot;_&quot;</span><span class="o">+</span><span class="n">final_unit</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">new_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">unit_conversion</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span>
+            <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="s">&quot;No column name &quot;</span> <span class="o">+</span>
+                <span class="n">col_name</span><span class="o">+</span><span class="s">&quot; in df in temp_unit_convert()&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c"># for successful runs, assign the values back</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="time_indication"><a class="viewcode-back" href="../doc_module.html#data_read.time_indication">[docs]</a><span class="k">def</span> <span class="nf">time_indication</span><span class="p">(</span><span class="n">df_option</span><span class="p">,</span> <span class="n">time_string</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function returns a misc_func.OptionalVariable()</span>
+<span class="sd">        with the &#39;details&#39; attribute in the pandas</span>
+<span class="sd">        DataFrame. To call the column name, use the</span>
+<span class="sd">        key name &#39;time_col&#39;.</span>
+
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file</span>
+
+<span class="sd">        time_string: string</span>
+<span class="sd">            a string for column name of the time column</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check if the dataframe is defined</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+    <span class="c"># add the attribute &#39;details&#39; if df does not have it</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s">&#39;details&#39;</span><span class="p">):</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">details_in_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+    <span class="c"># set the variables and return the variables</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_string</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="fault_allocation"><a class="viewcode-back" href="../doc_module.html#data_read.fault_allocation">[docs]</a><span class="k">def</span> <span class="nf">fault_allocation</span><span class="p">(</span><span class="n">df_option</span><span class="p">,</span> <span class="n">fault_type</span><span class="p">,</span> <span class="n">fault_level</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function returns a misc_func.OptionalVariable()</span>
+<span class="sd">        with details about faults appended to the &#39;details&#39;</span>
+<span class="sd">        attribute with key names &#39;fault_type&#39; and &#39;fault_level&#39;</span>
+
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file</span>
+
+<span class="sd">        fault_type: string</span>
+<span class="sd">            a string for the fault type in the test</span>
+
+<span class="sd">        fault_level: float</span>
+<span class="sd">            a float for a dimensionless fault level</span>
+<span class="sd">            in the test</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check if the dataframe is defined</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+    <span class="c"># add the attribute &#39;details&#39; if df does not have it</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s">&#39;details&#39;</span><span class="p">):</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">details_in_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+    <span class="c"># set the variables and return the variables</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;fault_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fault_type</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s">&#39;fault_level&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fault_level</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="cal_for_ss"><a class="viewcode-back" href="../doc_module.html#data_read.cal_for_ss">[docs]</a><span class="k">def</span> <span class="nf">cal_for_ss</span><span class="p">(</span><span class="n">df_option</span><span class="p">,</span> <span class="n">cal_method</span><span class="o">=</span><span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="n">col_names</span><span class="o">=</span><span class="p">[],</span> <span class="n">ss_time</span><span class="o">=</span><span class="mi">900</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function calculates steady state values of measurement</span>
+<span class="sd">        done in a time window specified in ss_time. The</span>
+<span class="sd">        averages will be stored in the Dataframe on the row</span>
+<span class="sd">        corresponding to the end time of the window. It also introduces</span>
+<span class="sd">        a column called &#39;beg_index&#39; to indicate when the steady</span>
+<span class="sd">        state starts and &#39;ss_time&#39; in details to indicate the length of</span>
+<span class="sd">        potential steady state period. It returns the df_option variable</span>
+<span class="sd">        with the newly appended columns.</span>
+
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains pandas dataframe obtained by</span>
+<span class="sd">            reading a raw csv from Comstock data file.</span>
+<span class="sd">            df_option.get().details.time_col must be defined</span>
+<span class="sd">            before use. The time column values should also be in</span>
+<span class="sd">            seconds.</span>
+
+<span class="sd">        cal_method: string</span>
+<span class="sd">            whether you want</span>
+<span class="sd">            &#39;mean&#39;: averages of values</span>
+<span class="sd">            &#39;abs_slope&#39;: average rate of change of values</span>
+<span class="sd">            &#39;rel_slope&#39;: average rate of change of values relative to</span>
+<span class="sd">            the mean value within the same period</span>
+<span class="sd">            &#39;min&#39;: minimum of values</span>
+<span class="sd">            &#39;max&#39;: maximum of values</span>
+<span class="sd">            Default &#39;mean&#39;</span>
+
+<span class="sd">        col_names: list</span>
+<span class="sd">            list of strings for names of columns to be averaged.</span>
+<span class="sd">            If the list is empty, the function will only create a</span>
+<span class="sd">            new column &#39;beg_index&#39; that marks the beginning of</span>
+<span class="sd">            potential steady states. Default empty.</span>
+
+<span class="sd">        ss_time: float</span>
+<span class="sd">            length of desired steady state period in seconds.</span>
+<span class="sd">            Defaulted to be 900.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check if the dataframe is defined appropriately</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">time_col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s">&quot;DataFrame to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;does not have &quot;</span><span class="o">+</span><span class="n">time_col_name</span><span class="o">+</span><span class="s">&quot; in &#39;details&#39; attribute. &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;Use time_indication() to introduce it.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c"># create a column to indicate what the index that marks</span>
+    <span class="c"># the beginning time stamp for steady state is</span>
+    <span class="n">len_df</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">beg_ind_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_df</span><span class="p">)]</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">ss_time_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ss_time</span>
+
+    <span class="c"># find the beginning time step for calculation</span>
+    <span class="c"># for each time instant in the data series</span>
+    <span class="n">time_col</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]</span>
+    <span class="n">beg_time</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">beg_cal_time</span> <span class="o">=</span> <span class="n">ss_time</span><span class="o">+</span><span class="n">beg_time</span>
+    <span class="n">search_indexes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">search_ind</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">beg_cal_time</span><span class="p">:</span>
+            <span class="c"># find the beginning time step</span>
+            <span class="n">current_time</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span>\
+                <span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">search_ind</span><span class="p">]]</span>
+            <span class="k">while</span> <span class="n">current_time</span> <span class="o">&gt;</span> <span class="n">ss_time</span><span class="p">:</span>
+                <span class="n">search_ind</span> <span class="o">=</span> <span class="n">search_ind</span><span class="o">+</span><span class="mi">1</span>
+                <span class="n">current_time</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span>\
+                    <span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">][</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">search_ind</span><span class="p">]]</span>
+            <span class="n">search_indexes</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">search_ind</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">beg_ind_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">search_ind</span>
+
+    <span class="c"># calculate the values and get them into the DataFrame</span>
+    <span class="n">len_df</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">beg_cal_time</span> <span class="o">=</span> <span class="n">ss_time</span><span class="o">+</span><span class="n">beg_time</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">col_names</span><span class="p">:</span>
+        <span class="c"># define calculation function</span>
+        <span class="n">new_col_name</span> <span class="o">=</span> <span class="n">col_name</span><span class="o">+</span><span class="s">&quot;_&quot;</span><span class="o">+</span><span class="n">cal_method</span>
+        <span class="k">if</span> <span class="n">cal_method</span> <span class="ow">is</span> <span class="s">&#39;mean&#39;</span><span class="p">:</span>  <span class="c"># mean</span>
+            <span class="k">def</span> <span class="nf">_cal_func</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+                <span class="n">value_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value_mean</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">][</span><span class="n">search_indexes</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                    <span class="p">)</span>
+                    <span class="n">value_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">value_mean</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">value_option</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">value_option</span>
+        <span class="k">elif</span> <span class="n">cal_method</span> <span class="ow">is</span> <span class="s">&#39;abs_slope&#39;</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">_cal_func</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">abs_slope</span><span class="p">(</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">][</span><span class="n">search_indexes</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">][</span><span class="n">search_indexes</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">value_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+                    <span class="n">value_option</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">value_option</span>
+        <span class="k">elif</span> <span class="n">cal_method</span> <span class="ow">is</span> <span class="s">&#39;rel_slope&#39;</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">_cal_func</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">abs_slope</span><span class="p">(</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">][</span><span class="n">search_indexes</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">][</span><span class="n">search_indexes</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">value_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+                    <span class="n">value_option</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">value_option</span>
+        <span class="k">elif</span> <span class="n">cal_method</span> <span class="ow">is</span> <span class="s">&#39;min&#39;</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">_cal_func</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+                <span class="n">value_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value_mean</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">][</span><span class="n">search_indexes</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                    <span class="p">)</span>
+                    <span class="n">value_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">value_mean</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">value_option</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">value_option</span>
+        <span class="k">elif</span> <span class="n">cal_method</span> <span class="ow">is</span> <span class="s">&#39;max&#39;</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">_cal_func</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+                <span class="n">value_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value_mean</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">][</span><span class="n">search_indexes</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                    <span class="p">)</span>
+                    <span class="n">value_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">value_mean</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">value_option</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">value_option</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span>
+                <span class="s">&quot;cal_method input &quot;</span><span class="o">+</span><span class="n">cal_method</span><span class="o">+</span><span class="s">&quot; to &quot;</span> <span class="o">+</span>
+                <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() is invalid&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">df</span><span class="p">[</span><span class="n">new_col_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_df</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">search_indexes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">new_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">_cal_func</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
+
+    <span class="c"># return new df</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df_option</span>
+
+</div>
+<div class="viewcode-block" id="ss_identifier"><a class="viewcode-back" href="../doc_module.html#data_read.ss_identifier">[docs]</a><span class="k">def</span> <span class="nf">ss_identifier</span><span class="p">(</span>
+    <span class="n">df_option</span><span class="p">,</span> <span class="n">col_names</span><span class="p">,</span> <span class="n">abs_slope_cols</span><span class="p">,</span> <span class="n">rel_slope_cols</span><span class="p">,</span>
+    <span class="n">abs_slope_thres</span><span class="p">,</span> <span class="n">rel_slope_thres</span><span class="p">,</span>
+    <span class="n">deltaT</span><span class="o">=</span><span class="mi">900</span><span class="p">,</span> <span class="n">ss_time</span><span class="o">=</span><span class="mi">900</span><span class="p">,</span> <span class="n">all_conditions</span><span class="o">=</span><span class="p">[]</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function identifies all steady state operation</span>
+<span class="sd">        within a data series and return multiple pandas</span>
+<span class="sd">        Dataframe in a list. These outputs also carries</span>
+<span class="sd">        the &#39;details&#39; attribute from the original Dataframe.</span>
+<span class="sd">        This function returns a list of misc_func.OptionalVariable()</span>
+<span class="sd">        that contains pandas DataFrame objects separately with</span>
+<span class="sd">        each DataFrame represents one steady state time series.</span>
+
+<span class="sd">        df_option: misc_func.OptionalVariable()</span>
+<span class="sd">            contains the original data series in pandas Dataframe.</span>
+
+<span class="sd">        col_names: list</span>
+<span class="sd">            list of strings containing the column names that</span>
+<span class="sd">            you want to pass to the new dataframes</span>
+
+<span class="sd">        abs_slope_cols: list</span>
+<span class="sd">            list of strings for names of columns where the</span>
+<span class="sd">            average rate of change is calculated</span>
+
+<span class="sd">        rel_slope_cols: list</span>
+<span class="sd">            list of strings for names of columns where the</span>
+<span class="sd">            relative average rate of change is calculated</span>
+
+<span class="sd">        abs_slope_thres: list</span>
+<span class="sd">            values of threshold which the magnitude if the average</span>
+<span class="sd">            rate of change should be smaller than to accept the</span>
+<span class="sd">            operation as steady state. Should be in the same order</span>
+<span class="sd">            as abs_slope_cols</span>
+
+<span class="sd">        rel_slope_thres: list</span>
+<span class="sd">            values of threshold which the magnitude if the relative average</span>
+<span class="sd">            rate of change should be smaller than to accept the</span>
+<span class="sd">            operation as steady state. Should be in the same order</span>
+<span class="sd">            as rel_slope_cols</span>
+
+<span class="sd">        deltaT: float</span>
+<span class="sd">            minimum time in seconds between two steady state operation.</span>
+<span class="sd">            Defaulted at 900</span>
+
+<span class="sd">        ss_time: float</span>
+<span class="sd">            length of desired steady state period in seconds.</span>
+<span class="sd">            Defaulted to be 900.</span>
+
+<span class="sd">        all_conditions: list</span>
+<span class="sd">            a list of additional conditions in strings that you want to</span>
+<span class="sd">            use in the detector. For instance, &#39;TEI[ind] &gt; 0&#39; means that you</span>
+<span class="sd">            want the values in the column &#39;TEI&#39; in the DataFrame to be</span>
+<span class="sd">            above 0 for all steady state period. Default empty</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># check if the dataframe is defined appropriately</span>
+    <span class="n">df_option</span><span class="o">.</span><span class="n">check_type</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">time_col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s">&quot;DataFrame to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;does not have &quot;</span><span class="o">+</span><span class="n">time_col_name</span><span class="o">+</span><span class="s">&quot; in &#39;details&#39; attribute. &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;Use time_indication() to introduce it.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">col_names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span>
+                <span class="s">&quot;DataFrame to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() &quot;</span> <span class="o">+</span>
+                <span class="s">&quot;does not have the column &#39;&quot;</span><span class="o">+</span><span class="n">col_name</span><span class="o">+</span><span class="s">&quot;&#39;.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">abs_slope_cols</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">abs_slope_thres</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="s">&quot;abs_slope_cols and abs_slope_thres in &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;ss_identifier has no equal length.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rel_slope_cols</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rel_slope_thres</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="s">&quot;rel_slope_cols and rel_slope_thres in &quot;</span> <span class="o">+</span>
+            <span class="s">&quot;ss_identifier has no equal length.&quot;</span>
+        <span class="p">)</span>
+    <span class="c"># run cal_for_ss() to get the steady state indexes</span>
+    <span class="c"># if it is not available</span>
+    <span class="k">if</span> <span class="n">beg_ind_col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="p">:</span>
+        <span class="n">df_option</span> <span class="o">=</span> <span class="n">cal_for_ss</span><span class="p">(</span>
+            <span class="n">df_option</span><span class="p">,</span> <span class="n">cal_method</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">col_names</span><span class="o">=</span><span class="p">[],</span> <span class="n">ss_time</span><span class="o">=</span><span class="n">ss_time</span>
+        <span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df_option</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+    <span class="c"># define function to compare thres with column values</span>
+    <span class="c"># return a boolean if the value is within range</span>
+    <span class="k">def</span> <span class="nf">_compare</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">thres</span><span class="p">,</span> <span class="n">ind</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">thres</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="c"># check each row</span>
+    <span class="n">abs_slope_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="o">+</span><span class="s">&#39;_abs_slope&#39;</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">abs_slope_cols</span><span class="p">]</span>
+    <span class="n">rel_slope_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="o">+</span><span class="s">&#39;_rel_slope&#39;</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">rel_slope_cols</span><span class="p">]</span>
+    <span class="n">col_bool_names</span> <span class="o">=</span> <span class="n">abs_slope_cols</span><span class="o">+</span><span class="n">rel_slope_cols</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">df_options</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c"># reconfigure extra condition statements</span>
+    <span class="n">config_conds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">pos_opr</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;!=&#39;</span><span class="p">,</span> <span class="s">&#39;==&#39;</span><span class="p">,</span> <span class="s">&#39;&gt;=&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;=&#39;</span><span class="p">,</span> <span class="s">&#39;&gt;&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;&#39;</span><span class="p">]</span>  <span class="c"># the longer ones go first</span>
+    <span class="k">for</span> <span class="n">condition</span> <span class="ow">in</span> <span class="n">all_conditions</span><span class="p">:</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">op_str</span> <span class="ow">in</span> <span class="n">pos_opr</span><span class="p">:</span>
+            <span class="n">op_pos</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">op_str</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">op_pos</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span>
+                    <span class="nb">eval</span><span class="p">(</span><span class="s">&#39;df.&#39;</span><span class="o">+</span><span class="n">condition</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">op_pos</span><span class="p">]</span><span class="o">+</span><span class="s">&#39;.tolist()[0]&#39;</span><span class="p">)</span>
+                <span class="p">),</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">):</span>
+                    <span class="c"># add .get() to the end to obtain</span>
+                    <span class="c"># the value from OptionalVariable()</span>
+                    <span class="n">config_conds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="s">&#39;df.&#39;</span><span class="o">+</span><span class="n">condition</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">op_pos</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">+</span><span class="s">&#39;[ind].get()&#39;</span> <span class="o">+</span>
+                        <span class="n">condition</span><span class="p">[</span><span class="n">op_pos</span><span class="p">:]</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">config_conds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="s">&#39;df.&#39;</span><span class="o">+</span><span class="n">condition</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">op_pos</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">+</span><span class="s">&#39;[ind]&#39;</span> <span class="o">+</span>
+                        <span class="n">condition</span><span class="p">[</span><span class="n">op_pos</span><span class="p">:]</span>
+                    <span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">count</span> <span class="o">=</span> <span class="n">count</span><span class="o">+</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_opr</span><span class="p">):</span>
+            <span class="k">raise</span><span class="p">(</span>
+                <span class="s">&quot;Improper condition &quot;</span><span class="o">+</span><span class="n">condition</span> <span class="o">+</span>
+                <span class="s">&quot;to &quot;</span><span class="o">+</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;() &quot;</span>
+            <span class="p">)</span>
+
+    <span class="c"># finding steady state periods</span>
+    <span class="k">while</span> <span class="n">ind</span> <span class="o">&lt;=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="c"># shift ind to somewhere it exists</span>
+        <span class="k">while</span> <span class="n">ind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="o">+</span><span class="mi">1</span>
+        <span class="c"># check if the values are defined</span>
+        <span class="n">check_bool</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">col_bool_names</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">check_bool</span><span class="p">):</span>
+            <span class="n">slope_bools</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">_compare</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">thres</span><span class="p">,</span> <span class="n">ind</span><span class="p">)</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">thres</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">abs_slope_cols</span><span class="p">,</span> <span class="n">abs_slope_thres</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">+</span><span class="p">[</span>
+                <span class="n">_compare</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">thres</span><span class="p">,</span> <span class="n">ind</span><span class="p">)</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">thres</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">rel_slope_cols</span><span class="p">,</span> <span class="n">rel_slope_thres</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="c"># implementing extra conditions</span>
+            <span class="k">for</span> <span class="n">cond</span> <span class="ow">in</span> <span class="n">config_conds</span><span class="p">:</span>
+                <span class="n">slope_bools</span> <span class="o">=</span> <span class="n">slope_bools</span><span class="o">+</span><span class="p">[</span><span class="nb">eval</span><span class="p">(</span><span class="n">cond</span><span class="p">)]</span>
+            <span class="c"># check if the values are within range</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">slope_bools</span><span class="p">):</span>
+                <span class="c"># create a new DaraFrame for the steady state data</span>
+                <span class="n">new_df_option</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">OptionalVariable</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">df_small</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">col_names</span><span class="o">+</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]]:</span>
+                        <span class="n">df_small</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> \
+                            <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">][</span><span class="n">df</span><span class="p">[</span><span class="n">beg_ind_col_name</span><span class="p">][</span><span class="n">ind</span><span class="p">]:</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">df_small</span> <span class="o">=</span> <span class="n">misc_func</span><span class="o">.</span><span class="n">details_in_dataframe</span><span class="p">(</span><span class="n">df_small</span><span class="p">)</span>
+                    <span class="n">df_small</span><span class="o">.</span><span class="n">details</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">)</span>
+                    <span class="c"># pass new information to indicate the change of values</span>
+                    <span class="k">for</span> <span class="n">ext_col</span> <span class="ow">in</span> <span class="n">col_bool_names</span><span class="p">:</span>
+                        <span class="n">df_small</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">ext_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">ext_col</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                    <span class="n">new_df_option</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">df_small</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="c"># if fails, pass the error instead</span>
+                    <span class="n">new_df_option</span><span class="o">.</span><span class="n">setError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="n">df_options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_df_option</span><span class="p">)</span>
+                <span class="c"># skip time by deltaT</span>
+                <span class="n">next_timestamp</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]][</span><span class="n">ind</span><span class="p">]</span><span class="o">+</span><span class="n">deltaT</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="o">+</span><span class="mi">1</span>
+                <span class="k">while</span> <span class="n">ind</span> <span class="o">&lt;=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="n">ind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span> <span class="ow">or</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="n">time_col_name</span><span class="p">]][</span><span class="n">ind</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">next_timestamp</span>
+                <span class="p">):</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="o">+</span><span class="mi">1</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="o">-</span><span class="mi">1</span>  <span class="c"># shift back for the increment at the end</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="o">+</span><span class="mi">1</span>
+
+    <span class="c"># return the list of df_option</span>
+    <span class="k">return</span> <span class="n">df_options</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Howard Cheung.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.2</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
