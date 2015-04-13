@@ -22,8 +22,6 @@ class OptionalVariable:
         use the function clear. If you want to see or set the
         Exception e, use function getError or setError.
 
-        Parameters:
-        ===========
         _exist: boolean
             indicates if the variable contains a valid object in var
 
@@ -50,8 +48,6 @@ class OptionalVariable:
         """
             Initialize and set variables var and type
 
-            Inputs:
-            ===========
             var: anything
                 variable to be set to var
         """
@@ -152,18 +148,12 @@ def details_in_dataframe(df):
     """
         This class inherits the pandas DataFrame
         structure with new attributes related to the 
-        testing conditions not listed in the DataFrame
+        testing conditions not listed in the DataFrame.
+        Returns a pandas Dataframe object with attribute
+        'details'.
 
-        Inputs:
-        ===========
         df: pandas Dataframe
             pandas Dataframe with test data
-
-        Outputs
-        ===========
-        df: pandas Dataframe
-            pandas Dataframe with test data and new
-            attribute details that is an empty dictionary
     """
     
     df.__setattr__('details', {})
@@ -173,25 +163,16 @@ def details_in_dataframe(df):
 def abs_slope(time_series, data_series):
     """
         This function calculates the average rate of change
-        of the data in the variable data_series per minute
+        of the data in the variable data_series per minute.
+        Returns a misc_func.OptionalVariable object with
+        the absolute slope stored in it.
 
-        Inputs:
-        ===========
         time_series: list or numpy array
             a list of timestamps showing when the data
             in data_series are collected in seconds
 
         data_series:  list or numpy array
             a list of data collected
-
-        Outputs:
-        ===========
-        slope: misc_func.OptionalVariable
-            average rate of change of data in data_series
-            per minute. If the length of data_series and
-            time_series is not the same, it is returned as
-            False.
-
     """
 
     slope = OptionalVariable()
@@ -216,25 +197,16 @@ def abs_slope(time_series, data_series):
 def rel_slope(time_series, data_series):
     """
         This function calculates the average rate of change
-        of the data in the variable data_series per minute
+        of the data in the variable data_series per minute.
+        Returns a misc_func.OptionalVariable object with
+        the relative slope stored in it.
 
-        Inputs:
-        ===========
         time_series: list or numpy array
             a list of timestamps showing when the data
             in data_series are collected in seconds
 
         data_series:  list or numpy array
             a list of data collected
-
-        Outputs:
-        ===========
-        rel_slope: misc_func.OptionalVariable
-            average rate of change of data in data_series
-            per minute relative to the mean value of data in
-            data_series. If the length of data_series and
-            time_series is not the same, it is returned as
-            False.
     """
 
     rel_slope = OptionalVariable()
@@ -255,18 +227,12 @@ def rel_slope(time_series, data_series):
 def sum_of_squares(values):
     """
         This function calculates the sum of squares of multiple
-        entries in values
+        entries in values. Returns an misc_func.OptionalVariable
+        object with a sum of square value in it.
 
-        Inputs:
-        ===========
         values: list or numpy array
             contains the floats or OptionaVariable()s
             for the sum of squares
-
-        Outputs:
-        ===========
-        ssq: OptionalVariable()
-            sum of square value
     """
 
     ssq = OptionalVariable()
@@ -281,17 +247,12 @@ def sum_of_squares(values):
 def sqrt_sum_of_squares(values):
     """
         This function calculates the square root of the sum of squares
-        from multiple entries in values
+        from multiple entries in values. Returns a misc_func.OptionalVariable
+        object with a square root of the sum of square value in it.
 
-        Inputs:
-        ===========
         values: list or numpy array
             contains the values in the sum of squares
 
-        Outputs:
-        ===========
-        ssq: OptionalVariable()
-            sum of square value
     """
 
     ssq = OptionalVariable()
@@ -321,18 +282,12 @@ def getOptionalVariable(value):
 
 def r2k(temp_R):
     """
-        This function converts temperature from degree Rankine to Kelvin
+        This function converts temperature from degree Rankine to Kelvin.
+        Returns the temperature in Kelvin.
 
-        Inputs:
-        ===========
         temp_F: float or numpy array
             temperature or temperature numpy array in
             degree Rankine
-
-        Outputs:
-        ===========
-        temp_K: float or numpy array
-            temperature or temperature numpy array in Kelvin
     """
 
     return temp_R*5.0/9.0
@@ -341,19 +296,12 @@ def r2k(temp_R):
 def f2c(temp_F):
     """
         This function converts temperature from degree Fahrenheit
-        to degree centigrade
+        to degree centigrade. Returns the temperature in degree
+        centigrade.
 
-        Inputs:
-        ===========
         temp_F: float or numpy array
             temperature or temperature numpy array in
             degree Fahrenheit
-
-        Outputs:
-        ===========
-        temp_C: float or numpy array
-            temperature or temperature numpy array in
-            degree centigrade
     """
 
     return r2k(temp_F-32.0)
@@ -362,19 +310,11 @@ def f2c(temp_F):
 def c2k(temp_C):
     """
         This function converts temperature from degree centigrade
-        to Kelvin
+        to Kelvin. Returns the temperature in Kelvin.
 
-        Inputs:
-        ===========
         temp_C: float or numpy array
             temperature or temperature numpy array in
             degree centigrade
-
-        Outputs:
-        ===========
-        temp_K: float or numpy array
-            temperature or temperature numpy array in
-            Kelvin
     """
 
     return temp_C+k2c_convert
@@ -383,19 +323,11 @@ def c2k(temp_C):
 def k2c(temp_K):
     """
         This function converts temperature from degree centigrade
-        to Kelvin
+        to Kelvin. Returns the temperature in degree centigrade.
 
-        Inputs:
-        ===========
         temp_K: float or numpy array
             temperature or temperature numpy array in
             Kelvin
-
-        Outputs:
-        ===========
-        temp_C: float or numpy array
-            temperature or temperature numpy array in
-            degree centigrade
     """
 
     return temp_K-k2c_convert
@@ -404,17 +336,11 @@ def k2c(temp_K):
 def gpm2m3s(gpm):
     """
         This function converts volumetric flow from
-        gpm to m3/s
+        gpm to m3/s. Returns the flow rate in m3/s
 
-        Inputs:
-        ===========
         gpm: float or numpy array
             flow rate in gpm
-
-        Outputs:
-        ===========
-        m3s: float or numpy array
-            flow rate in m3/s
     """
 
     return gpm*gpm2m3s_convert
+
