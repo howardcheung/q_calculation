@@ -265,7 +265,7 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
                 current_time = df[time_col][ind] -\
                     df[time_col][df.index[search_ind]]
             search_indexes[ind] = search_ind
-            df[beg_ind_col_name][ind] = search_ind
+            df.loc[ind, beg_ind_col_name] = search_ind
 
     # calculate the values and get them into the DataFrame
     len_df = len(df.index)
@@ -339,7 +339,7 @@ def cal_for_ss(df_option, cal_method='mean', col_names=[], ss_time=900):
         ]
 
         for ind in search_indexes.keys():
-            df[new_col_name][ind] = _cal_func(ind)
+            df.loc[ind, new_col_name] = _cal_func(ind)
 
     # return new df
     df_option.set(df)
