@@ -13,6 +13,7 @@ import pandas as pd
 k2c_convert = 273.15
 gpm2m3s_convert = 6.30901964*1.e-5
 
+
 class OptionalVariable:
     """
         This function stores a boolean and a variable. It returns true
@@ -140,6 +141,7 @@ class IncorrectFileError(Exception):
     """
     def __init__(self, value):
         self.value = value
+
     def __str__(self):
         return repr(self.value)
 
@@ -147,7 +149,7 @@ class IncorrectFileError(Exception):
 def details_in_dataframe(df):
     """
         This class inherits the pandas DataFrame
-        structure with new attributes related to the 
+        structure with new attributes related to the
         testing conditions not listed in the DataFrame.
         Returns a pandas Dataframe object with attribute
         'details'.
@@ -155,7 +157,7 @@ def details_in_dataframe(df):
         df: pandas Dataframe
             pandas Dataframe with test data
     """
-    
+
     df.__setattr__('details', {})
     return df
 
@@ -188,8 +190,8 @@ def abs_slope(time_series, data_series):
 
     # calculate slope by linear regression
     cov_mat_td = np.cov(time_series, data_series)
-    var_tt = cov_mat_td[0][0] # variance
-    var_td = cov_mat_td[0][1] # covariance
+    var_tt = cov_mat_td[0][0]  # variance
+    var_td = cov_mat_td[0][1]  # covariance
     slope.set(var_td/var_tt*60.0)
     return slope
 
@@ -293,6 +295,17 @@ def r2k(temp_R):
     return temp_R*5.0/9.0
 
 
+def new_optionalvariable_vector(nlen):
+    """
+        This function returns a list of misc.OptionalVariable
+        for initialization
+
+        nlen: int
+            length of list to be generated
+    """
+    return [OptionalVariable() for x in range(nlen)]
+
+
 def f2c(temp_F):
     """
         This function converts temperature from degree Fahrenheit
@@ -343,4 +356,3 @@ def gpm2m3s(gpm):
     """
 
     return gpm*gpm2m3s_convert
-

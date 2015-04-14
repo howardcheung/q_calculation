@@ -30,16 +30,16 @@ alpha = 0.95  # alpha value for confidence intervals
 # length of steady state data point and intervals
 # and intervals between data points
 ss_time = 900
-hx_name = 'evap' # identifier of the heat exchanger analyzed
-tei_name = "TEI" # column name of inlet temperature in degree F
-teo_name = "TEO" # column name of outlet temperature in degree F
+hx_name = 'evap'  # identifier of the heat exchanger analyzed
+tei_name = "TEI"  # column name of inlet temperature in degree F
+teo_name = "TEO"  # column name of outlet temperature in degree F
 # column name of temperature of volumetric airflow in degree F
 tvdot_name = "TBO"
 vdot_name = "FWE"  # column name of flow rate in GPM
 kW_name = "kW"  # column name of power consumption in kW
 tset_name = "TWE_set"  # column name of setpoint temperature in degree F
 # column names of other important temperature measurement in degree F
-other_t_names = ["TSI", "TCI", "TCO"] 
+other_t_names = ["TSI", "TCI", "TCO"]
 # column names of other important flow rates in GPM
 other_vdot_names = ["FWC"]
 # column name of time measurement in seconds
@@ -71,17 +71,17 @@ vdot_mea_si_names = [
 # check if iteration has the corrected information
 if len(filepaths) != len(fault_types):
     raise IndexError(
-        "Different number of files to be processed" +\
+        "Different number of files to be processed" +
         "with number of fault types defined"
     )
 if len(filepaths) != len(fault_levels):
     raise IndexError(
-        "Different number of files to be processed" +\
+        "Different number of files to be processed" +
         "with number of fault levels defined"
     )
 if len(fault_levels) != len(fault_types):
     raise IndexError(
-        "Different number of fault levels to be processed" +\
+        "Different number of fault levels to be processed" +
         "with number of fault types defined"
     )
 
@@ -91,7 +91,7 @@ for filepath, fault_type, fault_level in zip(
 ):
     # read the file
     df_option = dread.read_csv_option(filepath)
-    
+
     # should add code to remove rows that are bad
     # known bad: water temperature below 32F
     df_option.set(df_option.get()[df_option.get()[tei_name] > 32.0])
@@ -169,7 +169,7 @@ for filepath, fault_type, fault_level in zip(
         # mass flow rate readings from the steady
         # state period
         ss_df_option = ds.data_mean_cal(
-            ss_df_option, 
+            ss_df_option,
             temp_mea_si_names+vdot_mea_si_names+[
                 kW_name, tset_name+k_str_end
             ],
@@ -178,7 +178,7 @@ for filepath, fault_type, fault_level in zip(
 
         # calculate heat transfer rate from the mean
         # observations of the temperature and mass flow rates
-        ss_df_option = ds.cal_q_from_sample_result(
+        ss_df_option = ds.cal_q_with_uncer_from_sample_result(
             ss_df_option, vdot_name+vol_str_end,
             tvdot_name+k_str_end,
             teo_name+k_str_end,
@@ -186,7 +186,7 @@ for filepath, fault_type, fault_level in zip(
         )
 
         # calculate mdot*deltah at each time instant
-        ss_df_option = ds.cal_mdotdeltah_per_time(
+        ss_df_option = ds.cal_mdotdeltah_and_uncer_comp_per_time(
             ss_df_option, vdot_name+vol_str_end,
             tvdot_name+k_str_end,
             teo_name+k_str_end,
@@ -195,14 +195,14 @@ for filepath, fault_type, fault_level in zip(
         # integrate it at each time intervals
         # and getting their mean for a heat transfer rate
         for small_deltat in range(0, 70, 10):
-            ss_df_option = ds.cal_q_from_ind_mea(
+            ss_df_option = ds.cal_q_and_uncer_comp_from_ind_mea(
                 ss_df_option, deltat=small_deltat,
                 hx_name=hx_name, alpha=alpha
             )
 
     # append the results per file
     all_ss_df_options = all_ss_df_options+ss_df_options
-    del df_option, ss_df_options # delete the unnecessary files
+    del df_option, ss_df_options  # delete the unnecessary files
 
 # print results
 ds.print_data(
