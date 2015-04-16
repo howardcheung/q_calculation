@@ -236,6 +236,21 @@ ds.print_data(
         'q_uncer_evap_mean_obs_tout',
         'q_uncer_evap_mean_obs_tvdot',
         'q_uncer_evap_mean_obs_vdot',
+        'rel_q_uncer_evap_mean_inst_first',
+        'rel_q_uncer_evap_mean_inst_heos',
+        'rel_q_uncer_evap_mean_inst_rhoeos',
+        'rel_q_uncer_evap_mean_inst_tin',
+        'rel_q_uncer_evap_mean_inst_tout',
+        'rel_q_uncer_evap_mean_inst_tvdot',
+        'rel_q_uncer_evap_mean_inst_vdot',
+        'rel_q_uncer_evap_mean_inst_zero',
+        'rel_q_uncer_evap_mean_obs',
+        'rel_q_uncer_evap_mean_obs_heos',
+        'rel_q_uncer_evap_mean_obs_rhoeos',
+        'rel_q_uncer_evap_mean_obs_tin',
+        'rel_q_uncer_evap_mean_obs_tout',
+        'rel_q_uncer_evap_mean_obs_tvdot',
+        'rel_q_uncer_evap_mean_obs_vdot',
         'ss_time'
     ]
 )
