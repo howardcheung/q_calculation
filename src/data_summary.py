@@ -213,8 +213,8 @@ def cal_mdot(vdot, tvdot, vdot_uncer, tvdot_uncer, medium, full_output=False):
     try:
         rho = PropsSI('D', 'T', tvdot, 'Q', 0, medium)
         rho_uncer_expt = abs(
-            PropsSI('D', 'T', tvdot*1.001, 'Q', 0, medium)-rho
-        )/tvdot/0.001*tvdot_uncer
+            PropsSI('D', 'T', tvdot*1.0001, 'Q', 0, medium)-rho
+        )/tvdot/0.0001*tvdot_uncer
         rho_uncer_eos = rho*rel_uncer_rho_eos
         mdot.set(rho*vdot)
         mdot_uncer = misc.sqrt_sum_of_squares([
@@ -368,11 +368,11 @@ def cal_mdotdeltah_water(
 
         # calculate uncertainty of deltah
         hout_uncer = abs(
-            PropsSI('H', 'T', tout*1.001, 'Q', 0, medium)-hout
-        )/tout/0.001*tout_uncer
+            PropsSI('H', 'T', tout*1.0001, 'Q', 0, medium)-hout
+        )/tout/0.0001*tout_uncer
         hin_uncer = abs(
-            PropsSI('H', 'T', tin*1.001, 'Q', 0, medium)-hin
-        )/tin/0.001*tin_uncer
+            PropsSI('H', 'T', tin*1.0001, 'Q', 0, medium)-hin
+        )/tin/0.0001*tin_uncer
         deltah_uncer_eos = rel_uncer_deltah*deltah
         deltah_uncer = misc.sqrt_sum_of_squares([
             hout_uncer, hin_uncer, deltah_uncer_eos
