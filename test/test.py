@@ -244,7 +244,6 @@ ds.print_data(
         'rel_q_uncer_evap_mean_inst_tvdot',
         'rel_q_uncer_evap_mean_inst_vdot',
         'rel_q_uncer_evap_mean_inst_zero',
-        'rel_q_uncer_evap_mean_obs',
         'rel_q_uncer_evap_mean_obs_heos',
         'rel_q_uncer_evap_mean_obs_rhoeos',
         'rel_q_uncer_evap_mean_obs_tin',
