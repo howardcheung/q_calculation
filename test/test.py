@@ -220,6 +220,22 @@ ds.print_data(
         'TEI_K_abs_slope', 'TEO_K_abs_slope',
         'TCI_K_abs_slope', 'TCO_K_abs_slope',
         'FWE_m3s_rel_slope', 'FWC_m3s_rel_slope',
-        'kW_rel_slope'
+        'kW_rel_slope',  'q_uncer_evap_mean_inst',
+        'q_uncer_evap_mean_inst_first',
+        'q_uncer_evap_mean_inst_heos',
+        'q_uncer_evap_mean_inst_rhoeos',
+        'q_uncer_evap_mean_inst_tin',
+        'q_uncer_evap_mean_inst_tout',
+        'q_uncer_evap_mean_inst_tvdot',
+        'q_uncer_evap_mean_inst_vdot',
+        'q_uncer_evap_mean_inst_zero',
+        'q_uncer_evap_mean_obs',
+        'q_uncer_evap_mean_obs_heos',
+        'q_uncer_evap_mean_obs_rhoeos',
+        'q_uncer_evap_mean_obs_tin',
+        'q_uncer_evap_mean_obs_tout',
+        'q_uncer_evap_mean_obs_tvdot',
+        'q_uncer_evap_mean_obs_vdot',
+        'ss_time'
     ]
 )
