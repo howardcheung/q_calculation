@@ -897,11 +897,26 @@ def cal_q_with_uncer_from_sample_result(
         df.details['q_uncer_'+hx_name+'_mean_obs_tvdot'] = q_uncer_tvdot.get()
         df.details['q_uncer_'+hx_name+'_mean_obs_rhoeos'] = \
             q_uncer_rhoeos.get()
+        df.details['rel_q_uncer_'+hx_name+'_mean_obs_vdot'] = \
+            (q_uncer_vdot.get()/q_uncer.get())**2
+        df.details['rel_q_uncer_'+hx_name+'_mean_obs_tvdot'] = \
+            (q_uncer_tvdot.get()/q_uncer.get())**2
+        df.details['rel_q_uncer_'+hx_name+'_mean_obs_rhoeos'] = \
+            (q_uncer_rhoeos.get()/q_uncer.get())**2
     else:
-        df.details['q_uncer_'+hx_name+'_mean_obs_mdot'] = q_uncer_mdot.get()
+        df.details['q_uncer_'+hx_name+'_mean_obs_mdot'] = \
+            q_uncer_mdot.get()
+        df.details['rel_q_uncer_'+hx_name+'_mean_obs_mdot'] = \
+            (q_uncer_mdot.get()/q_uncer.get())**2
     df.details['q_uncer_'+hx_name+'_mean_obs_tout'] = q_uncer_tout.get()
     df.details['q_uncer_'+hx_name+'_mean_obs_tin'] = q_uncer_tin.get()
     df.details['q_uncer_'+hx_name+'_mean_obs_heos'] = q_uncer_heos.get()
+    df.details['rel_q_uncer_'+hx_name+'_mean_obs_tout'] = \
+        (q_uncer_tout.get()/q_uncer.get())**2
+    df.details['rel_q_uncer_'+hx_name+'_mean_obs_tin'] = \
+        (q_uncer_tin.get()/q_uncer.get())**2
+    df.details['rel_q_uncer_'+hx_name+'_mean_obs_heos'] = \
+        (q_uncer_heos.get()/q_uncer.get())**2
     df_option.set(df)
     return df_option
 
@@ -1257,8 +1272,9 @@ def cal_q_and_uncer_comp_from_ind_mea(
     first_order_sq = (
         stdev(q_ind)*t.interval(alpha, len_q_ind-1)[1]/len_q_ind
     )**2  # give NaN for zero degree of freedom
+    overall_uncer_sq = zero_order_sq+first_order_sq
     df.details['q_uncer_'+hx_name+'_mean'+time_std_end] = sqrt(
-        zero_order_sq+first_order_sq
+        overall_uncer_sq
     )
     df.details['q_uncer_'+hx_name+'_mean'+time_std_end+'_zero'] = sqrt(
         zero_order_sq
@@ -1266,6 +1282,10 @@ def cal_q_and_uncer_comp_from_ind_mea(
     df.details['q_uncer_'+hx_name+'_mean'+time_std_end+'_first'] = sqrt(
         first_order_sq
     )
+    df.details['rel_q_uncer_'+hx_name+'_mean'+time_std_end+'_zero'] = \
+        zero_order_sq/overall_uncer_sq
+    df.details['rel_q_uncer_'+hx_name+'_mean'+time_std_end+'_first'] = \
+        first_order_sq/overall_uncer_sq
     for name in uncer_add_names:
         strend = name.replace(uncer_col_name, '')
         if strend != '':
@@ -1274,9 +1294,10 @@ def cal_q_and_uncer_comp_from_ind_mea(
             )
             df.details[
                 'q_uncer_'+hx_name+'_mean'+time_std_end+strend
-            ] = sqrt(
-                temp_uncer
-            )
+            ] = sqrt(temp_uncer)
+            df.details[
+                'rel_q_uncer_'+hx_name+'_mean'+time_std_end+strend
+            ] = temp_uncer/overall_uncer_sq
 
     # return values
     df_option.set(df)
